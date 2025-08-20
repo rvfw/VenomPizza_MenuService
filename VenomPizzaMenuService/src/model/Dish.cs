@@ -20,6 +20,8 @@ public class Dish : Product
         get => JsonSerializer.Deserialize<Dictionary<int, decimal>>(PriceVariants ?? "{}") ?? [];
         set => PriceVariants = JsonSerializer.Serialize(value);
     }
+
+    public Dish(int id, string title) : base(id, title) { }
     public Dish(DishDto dto):base(dto)
     {
         Ingredients = dto.Ingredients;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.model;
 using VenomPizzaMenuService.src.repository;
@@ -7,46 +8,47 @@ namespace VenomPizzaMenuService.src.service;
 
 public class ProductsService
 {
-    private readonly ProductsDbContext dbContext;
-    public ProductsService(ProductsDbContext dbContext)
+    private readonly ProductsRepository productsRepository;
+    public ProductsService(ProductsRepository productsRepository)
     {
-        this.dbContext = dbContext;
+        this.productsRepository = productsRepository;
     }
 
     #region create
-    public Product AddProduct(int id, ProductDto newProduct)
+    public async Task<Product> AddProduct(int id, ProductDto newProduct)
     {
-        return dbContext.AddProduct(id,newProduct);
+        return await productsRepository.AddProduct(id,newProduct);
     }
 
-    public Product AddProduct(int id, ComboDto newCombo)
+    public async Task<Product> AddProduct(int id, ComboDto newCombo)
     {
-        return dbContext.AddProduct(id, newCombo);
+        return await productsRepository.AddProduct(id, newCombo);
     }
     #endregion
 
     #region read
-    public Product GetProductById(int id)
+    public async Task<Product> GetProductById(int id)
     {
-        return dbContext.GetProductById(id);
+        return await productsRepository.GetProductById(id);
     }
-    public IEnumerable<Product> GetProductsPage(int page,int size)
+    public async Task<List<Product>> GetProductsPage(int page,int size)
     {
-        return dbContext.GetProductsPage(page,size);
+        var foundedProducts= await productsRepository.GetProductsPage(page,size);
+        return foundedProducts;
     }
     #endregion
 
     #region update
-    public Product UpdateProductInfo(int id, ProductDto updatedProduct)
+    public async Task<Product> UpdateProductInfo(int id, ProductDto updatedProduct)
     {
-        return dbContext.UpdateProductInfo(id,updatedProduct);
+        return await productsRepository.UpdateProductInfo(id,updatedProduct);
     }
     #endregion
 
     #region delete
     public void DeleteProductById(int id)
     {
-        dbContext.DeleteProductById(id);
+        productsRepository.DeleteProductById(id);
     }
     #endregion
 }
