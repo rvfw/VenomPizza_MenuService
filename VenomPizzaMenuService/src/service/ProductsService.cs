@@ -17,12 +17,14 @@ public class ProductsService
     #region create
     public async Task<Product> AddProduct(int id, ProductDto newProduct)
     {
-        return await productsRepository.AddProduct(id,newProduct);
+        newProduct.Validate();
+        return await productsRepository.AddProduct(newProduct);
     }
 
     public async Task<Product> AddProduct(int id, ComboDto newCombo)
     {
-        return await productsRepository.AddProduct(id, newCombo);
+        newCombo.Validate();
+        return await productsRepository.AddProduct(newCombo);
     }
     #endregion
 
@@ -33,22 +35,22 @@ public class ProductsService
     }
     public async Task<List<Product>> GetProductsPage(int page,int size)
     {
-        var foundedProducts= await productsRepository.GetProductsPage(page,size);
-        return foundedProducts;
+        return await productsRepository.GetProductsPage(page,size);
     }
     #endregion
 
     #region update
-    public async Task<Product> UpdateProductInfo(int id, ProductDto updatedProduct)
+    public async Task<Product> UpdateProductInfo(ProductDto updatedProduct)
     {
-        return await productsRepository.UpdateProductInfo(id,updatedProduct);
+        updatedProduct.Validate();
+        return await productsRepository.UpdateProductInfo(updatedProduct);
     }
     #endregion
 
     #region delete
-    public void DeleteProductById(int id)
+    public async Task DeleteProductById(int id)
     {
-        productsRepository.DeleteProductById(id);
+        await productsRepository.DeleteProductById(id);
     }
     #endregion
 }

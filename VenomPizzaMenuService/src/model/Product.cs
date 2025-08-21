@@ -7,7 +7,7 @@ namespace VenomPizzaMenuService.src.model;
 
 public class Product
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
     public string Title { get; set; }
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
@@ -18,9 +18,8 @@ public class Product
         Id= id;
         Title= title;
     }
-    public Product(ProductDto dto)
+    public Product(ProductDto dto):this(dto.Id,dto.Title)
     {
-        Title=dto.Title;
         ImageUrl=dto.ImageUrl;
         Description=dto.Description;
         Price=dto.Price;

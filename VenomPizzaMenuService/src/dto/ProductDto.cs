@@ -1,22 +1,42 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.dto;
 
 public class ProductDto
 {
-    public required string Title { get; set; }
+    [Required]
+    [Range(1, int.MaxValue,ErrorMessage ="ID не может быть меньше 1")]
+    public int Id { get; set; }
+    [Required]
+    [NotNull]
+    [Length(4,50,ErrorMessage ="Название продукта должно быть от 4 до 50 символов")]
+    public string? Title { get; set; }
     public string? ImageUrl { get; set; }
+    [Length(0,500, ErrorMessage = "Описание продукта не может быть больше 500 символов")]
     public string? Description { get; set; }
-    [Range(1,99999)]
+    [Range(0,int.MaxValue,ErrorMessage ="Цена не может быть меньше 1 рубля")]
     public decimal Price { get; set; }
     public bool Available { get; set; } = true;
     public List<string>? Categories { get; set; }
-    public ProductType ProductType { get; set; }
-}
-public enum ProductType
-{
-    Product,
-    Combo,
-    Dish,
+    public ProductDto(int id,string? title)
+    {
+        Id = id;
+        Title = title;
+    }
+    public virtual Product ToProduct()
+    {
+        return new Product(this);
+    }
+    public virtual void Validate()
+    {
+        var results=new List<ValidationResult>();
+        var context=new ValidationContext(this);
+        if (!Validator.TryValidateObject(this, context, results,true))
+        {
+            var errors=string.Join(", ",results.Select(x => x.ErrorMessage));
+            throw new ValidationException(errors);
+        }
+    }
 }

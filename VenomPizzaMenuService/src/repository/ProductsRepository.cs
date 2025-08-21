@@ -14,20 +14,24 @@ namespace VenomPizzaMenuService.src.repository
         }
 
         #region create
-        public async Task<Product> AddProduct(int id, ProductDto newProduct)
+        public async Task<Product> AddProduct(ProductDto newProduct)
         {
-            if (await GetProductById(id) != null)
-                throw new BadHttpRequestException("Товар с ID " + id + " уже существует");
-            var addedProduct = dbContext.Products.Add(new Product(newProduct) { Id = id });
+            if (await dbContext.Products.AnyAsync(x => x.Id == newProduct.Id))
+                throw new ArgumentException("Товар с ID " + newProduct.Id + " уже существует");
+            var addedProduct = dbContext.Products.Add(newProduct.ToProduct());
             await dbContext.SaveChangesAsync();
             return addedProduct.Entity;
         }
 
-        public async Task<Product> AddProduct(int id, ComboDto newCombo)
+        public async Task<Product> AddProduct(ComboDto newCombo)
         {
-            if (await GetProductById(id) != null)
-                throw new BadHttpRequestException("Комбо с ID " + id + " уже существует");
-            var addedCombo = dbContext.Products.Add(new Combo(newCombo) { Id = id });
+            if (await dbContext.Products.AnyAsync(x => x.Id == newCombo.Id))
+                throw new ArgumentException("Товар с ID " + newCombo.Id + " уже существует");
+            var foundedProducts=await dbContext.Products.Where(x=>newCombo.ProductsDict.ContainsKey(x.Id)).ToListAsync();
+            foreach (var searchedProduct in newCombo.ProductsDict)
+                if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
+                    throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
+            var addedCombo = dbContext.Products.Add(newCombo.ToProduct());
             await dbContext.SaveChangesAsync();
             dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x=>new ComboProduct(addedCombo.Entity.Id, x.Key, x.Value)));
             return addedCombo.Entity;
@@ -37,9 +41,6 @@ namespace VenomPizzaMenuService.src.repository
         #region read
         public async Task<List<Product>> GetProductsPage(int page, int size)
         {
-            if (page < 1 || size < 1)
-                throw new ArgumentException("Номер страницы и ее размер должны быть больше 0");
-            page--;
             var foundedProducts=await dbContext.Products.OrderBy(p=>p.Id).Skip(page * size).Take(size).ToListAsync();
             if (foundedProducts.Count() == 0)
                 throw new KeyNotFoundException("Страницы " + page + " не существует");
@@ -48,8 +49,6 @@ namespace VenomPizzaMenuService.src.repository
 
         public async Task<Product> GetProductById(int id)
         {
-            if(id<=0)
-                throw new ArgumentException("Id продукта должно быть больше 0");
             var foundedProduct= await dbContext.Products.FirstOrDefaultAsync(x => x.Id == id);
             if (foundedProduct == null)
                 throw new KeyNotFoundException("Товара с ID " + id + " не найдено");
@@ -58,11 +57,11 @@ namespace VenomPizzaMenuService.src.repository
         #endregion
 
         #region update
-        public async Task<Product> UpdateProductInfo(int id, ProductDto updatedProduct)
+        public async Task<Product> UpdateProductInfo(ProductDto updatedProduct)
         {
-            var foundedProduct = await GetProductById(id);
+            var foundedProduct = await GetProductById(updatedProduct.Id);
             if (foundedProduct == null)
-                throw new KeyNotFoundException("Товара с ID " + id + " не найдено");
+                throw new KeyNotFoundException("Товара с ID " + updatedProduct.Id + " не найдено");
             dbContext.Entry(foundedProduct).CurrentValues.SetValues(updatedProduct);
             if (foundedProduct is Dish foundedDish && updatedProduct is DishDto updatedDish)
                 UpdateDish(foundedDish, updatedDish);
@@ -77,8 +76,6 @@ namespace VenomPizzaMenuService.src.repository
         public async Task DeleteProductById(int id)
         {
             var foundedProduct = await GetProductById(id);
-            if (foundedProduct == null)
-                throw new KeyNotFoundException("Товара с ID " + id + " не найдено");
             dbContext.Products.Remove(foundedProduct);
             await dbContext.SaveChangesAsync();
         }
