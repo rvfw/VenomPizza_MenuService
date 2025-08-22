@@ -15,13 +15,13 @@ public class ProductsService
     }
 
     #region create
-    public async Task<Product> AddProduct(int id, ProductDto newProduct)
+    public async Task<Product> AddProduct(ProductDto newProduct)
     {
         newProduct.Validate();
         return await productsRepository.AddProduct(newProduct);
     }
 
-    public async Task<Product> AddProduct(int id, ComboDto newCombo)
+    public async Task<Product> AddProduct(ComboDto newCombo)
     {
         newCombo.Validate();
         return await productsRepository.AddProduct(newCombo);

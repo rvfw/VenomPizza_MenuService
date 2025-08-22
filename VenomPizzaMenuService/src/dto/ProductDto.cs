@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.dto;
 
+[JsonDerivedType(typeof(DishDto),"Dish")]
+[JsonDerivedType(typeof(ComboDto), "Combo")]
 public class ProductDto
 {
     [Required]

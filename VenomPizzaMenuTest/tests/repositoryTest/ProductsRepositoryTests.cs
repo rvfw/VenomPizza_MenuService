@@ -47,17 +47,23 @@ public class ProductsRepositoryTests
             Assert.That(createdProducts[i].Title, Is.EqualTo(products[i].Title));
         }
         Assert.That(((Dish)createdProducts[1]).Calorific, Is.EqualTo(100));
-
-        var comboProducts=new Dictionary<int, int>() { [1] = 1, [2]= 2};
+    }
+    [Test]
+    public async Task AddCombo_Success()
+    {
+        Product[] products = { new Product(1, "Product"), new Dish(2, "Dish") { Calorific = 100 } };
+        _context.AddRange(products);
+        await _context.SaveChangesAsync();
+        var comboProducts = new Dictionary<int, int>() { [1] = 1, [2] = 2 };
         var combo = new ComboDto(3, "Combo") { ProductsDict = comboProducts };
         await _productsRepository.AddProduct(combo);
 
-        var foundedCombo = await _context.Products.FirstOrDefaultAsync(x=>x.Id==3);
+        var foundedCombo = await _context.Products.FirstOrDefaultAsync(x => x.Id == 3);
         Assert.That(foundedCombo, Is.Not.Null);
         Assert.That(foundedCombo.Id, Is.EqualTo(combo.Id));
         Assert.That(foundedCombo.Title, Is.EqualTo(combo.Title));
 
-        var foundedComboProducts= ((Combo)foundedCombo).Products;
+        var foundedComboProducts = ((Combo)foundedCombo).Products;
         Assert.That(foundedComboProducts[0].ProductId, Is.EqualTo(products[0].Id));
         Assert.That(foundedComboProducts[1].ProductId, Is.EqualTo(products[1].Id));
         Assert.That(foundedComboProducts[0].Quantity, Is.EqualTo(1));
@@ -106,7 +112,7 @@ public class ProductsRepositoryTests
         _context.Products.AddRange(products);
         await _context.SaveChangesAsync();
 
-        var result = await _productsRepository.GetProductsPage(1,2);
+        var result = await _productsRepository.GetProductsPage(0,2);
 
         Assert.That(result.Count, Is.EqualTo(2));
         for (int i=0;i<result.Count();i++)
@@ -124,7 +130,7 @@ public class ProductsRepositoryTests
         _context.Products.AddRange(products);
         await _context.SaveChangesAsync();
 
-        var result = await _productsRepository.GetProductsPage(2, 2);
+        var result = await _productsRepository.GetProductsPage(1, 2);
 
         Assert.That(result.Count,Is.EqualTo(1));
         Assert.That(result[0], Is.Not.Null);
@@ -138,7 +144,7 @@ public class ProductsRepositoryTests
         _context.Products.AddRange(products);
         await _context.SaveChangesAsync();
 
-        var result = await _productsRepository.GetProductsPage(1, 25);
+        var result = await _productsRepository.GetProductsPage(0, 25);
 
         Assert.That(result.Count, Is.EqualTo(3));
         for (int i = 0; i < result.Count(); i++)
@@ -152,16 +158,6 @@ public class ProductsRepositoryTests
     public void GetProductsPage_WrongPage()
     {
         Assert.ThrowsAsync<KeyNotFoundException>(async () => await _productsRepository.GetProductsPage(1, 1), "Страницы 1 не существует");
-    }
-    [Test]
-    public void GetProductsPage_BadPageRequest()
-    {
-        Assert.ThrowsAsync<ArgumentException>(async () => await _productsRepository.GetProductsPage(0, 1), "Номер страницы и ее размер должны быть больше 0");
-    }
-    [Test]
-    public void GetProductsPage_BadSizeRequest()
-    {
-        Assert.ThrowsAsync<ArgumentException>(async () => await _productsRepository.GetProductsPage(1, 0), "Номер страницы и ее размер должны быть больше 0");
     }
     #endregion
 

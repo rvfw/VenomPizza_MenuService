@@ -1,6 +1,10 @@
+using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using VenomPizzaMenuService.src.context;
+using VenomPizzaMenuService.src.kafka;
+using VenomPizzaMenuService.src.repository;
+using VenomPizzaMenuService.src.service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +12,13 @@ builder.Services.AddDbContext<ProductsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
+builder.Services.AddSingleton<IProducer<string, string>>(provider =>
+{
+    var config = new ProducerConfig { BootstrapServers = builder.Configuration["Kafka:BootstrapServers"] };
+    return new ProducerBuilder<string,string>(config).Build();
+});
+builder.Services.AddHostedService<KafkaConsumerService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "MyCorsPolicy",
