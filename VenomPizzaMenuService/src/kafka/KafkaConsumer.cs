@@ -15,17 +15,15 @@ public class KafkaConsumerService : BackgroundService
     private readonly IServiceProvider serviceProvider;
     private readonly IConsumer<string, string> consumer;
     private readonly ILogger<KafkaConsumerService> logger;
-    private readonly ProductsService productsService;
-    public KafkaConsumerService(IOptions<KafkaSettings> settings,ILogger<KafkaConsumerService> logger,IServiceProvider serviceProvider,ProductsService productService)
+    public KafkaConsumerService(IOptions<KafkaSettings> settings,ILogger<KafkaConsumerService> logger,IServiceProvider serviceProvider)
     {
         this.logger=logger;
         this.settings=settings.Value; 
         this.serviceProvider=serviceProvider;
-        this.productsService=productService;
         var config = new ConsumerConfig
         {
-            BootstrapServers = settings.Value.BootstrapServers,
-            GroupId = settings.Value.GroupId,
+            BootstrapServers = this.settings.BootstrapServers,
+            GroupId = this.settings.GroupId,
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
         consumer = new ConsumerBuilder<string, string>(config).Build();
@@ -44,6 +42,11 @@ public class KafkaConsumerService : BackgroundService
             {
                 var result = consumer.Consume(stoppingToken);
                 logger.LogInformation($"Получено: {result.Message.Value}");
+                using (var scope = serviceProvider.CreateScope())
+                {
+                    var productsService = scope.ServiceProvider.GetRequiredService<ProductsService>();
+                    await ProccessRequestAsync(productsService,result.Topic, result.Message.Value);
+                }
             }
             catch (Exception ex)
             {
@@ -52,7 +55,7 @@ public class KafkaConsumerService : BackgroundService
         }
         consumer.Close();
     }
-    private async Task ProccessRequestAsync(string topic,string message)
+    private async Task ProccessRequestAsync(ProductsService productsService,string topic,string message)
     {
         if (new List<string>() { settings.Topics.ProductCreated, settings.Topics.ProductUpdated }.Contains(topic))
         {

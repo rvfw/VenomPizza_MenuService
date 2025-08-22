@@ -12,6 +12,8 @@ builder.Services.AddDbContext<ProductsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddScoped<ProductsService>();
+builder.Services.AddScoped<ProductsRepository>();
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 builder.Services.AddSingleton<IProducer<string, string>>(provider =>
 {

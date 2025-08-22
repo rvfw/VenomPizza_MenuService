@@ -22,8 +22,6 @@ namespace VenomPizzaMenuService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.HasSequence("ProductSequence");
-
             modelBuilder.Entity("VenomPizzaMenuService.src.model.ComboProduct", b =>
                 {
                     b.Property<int>("ProductId")
@@ -46,10 +44,9 @@ namespace VenomPizzaMenuService.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValueSql("nextval('\"ProductSequence\"')");
+                        .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseSequence(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Available")
                         .HasColumnType("boolean");
@@ -74,7 +71,7 @@ namespace VenomPizzaMenuService.Migrations
 
                     b.ToTable("Products");
 
-                    b.UseTpcMappingStrategy();
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
@@ -132,6 +129,24 @@ namespace VenomPizzaMenuService.Migrations
                     b.Navigation("Combo");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
+                {
+                    b.HasOne("VenomPizzaMenuService.src.model.Product", null)
+                        .WithOne()
+                        .HasForeignKey("VenomPizzaMenuService.src.model.Combo", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VenomPizzaMenuService.src.model.Dish", b =>
+                {
+                    b.HasOne("VenomPizzaMenuService.src.model.Product", null)
+                        .WithOne()
+                        .HasForeignKey("VenomPizzaMenuService.src.model.Dish", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
