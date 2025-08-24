@@ -6,7 +6,7 @@ using VenomPizzaMenuService.src.repository;
 
 namespace VenomPizzaMenuService.src.service;
 
-public class ProductsService
+public class ProductsService:IProductsService
 {
     private readonly ProductsRepository productsRepository;
     public ProductsService(ProductsRepository productsRepository)

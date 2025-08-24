@@ -41,7 +41,7 @@ public class KafkaConsumerService : BackgroundService
             try
             {
                 var result = consumer.Consume(stoppingToken);
-                logger.LogInformation($"Получено: {result.Message.Value}");
+                logger.LogInformation($"Получено из топика {result.Topic}:\n{result.Message.Value}");
                 using (var scope = serviceProvider.CreateScope())
                 {
                     var productsService = scope.ServiceProvider.GetRequiredService<ProductsService>();
@@ -55,7 +55,7 @@ public class KafkaConsumerService : BackgroundService
         }
         consumer.Close();
     }
-    private async Task ProccessRequestAsync(ProductsService productsService,string topic,string message)
+    public async Task ProccessRequestAsync(IProductsService productsService,string topic,string message)
     {
         if (new List<string>() { settings.Topics.ProductCreated, settings.Topics.ProductUpdated }.Contains(topic))
         {
