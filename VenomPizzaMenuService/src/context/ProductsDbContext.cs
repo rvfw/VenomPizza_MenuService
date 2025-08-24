@@ -32,5 +32,10 @@ public class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : Db
                 .HasForeignKey(cp => cp.ComboId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<PriceVariant>()
+            .HasOne(pv => pv.Dish)
+            .WithMany(p => p.PriceVariants)
+            .HasForeignKey(pv => pv.DishId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

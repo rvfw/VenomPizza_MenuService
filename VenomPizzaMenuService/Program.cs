@@ -20,7 +20,7 @@ builder.Services.AddSingleton<IProducer<string, string>>(provider =>
     var config = new ProducerConfig { BootstrapServers = builder.Configuration["Kafka:BootstrapServers"] };
     return new ProducerBuilder<string,string>(config).Build();
 });
-builder.Services.AddHostedService<KafkaConsumerService>();
+//builder.Services.AddHostedService<KafkaConsumerService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "MyCorsPolicy",

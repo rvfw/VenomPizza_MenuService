@@ -7,7 +7,7 @@ namespace VenomPizzaMenuService.src.dto;
 
 public class DishDto:ProductDto
 {
-    public List<string>? Ingredients { get; set; }
+    public List<string> Ingredients { get; set; } = new List<string>();
     [Range(0, int.MaxValue,ErrorMessage ="Белки не могут быть отрицательного значения")]
     public float Proteins { get; set; }
     [Range(0, int.MaxValue, ErrorMessage = "Жиры не могут быть отрицательного значения")]
@@ -16,7 +16,7 @@ public class DishDto:ProductDto
     public float Carbohydrates { get; set; }
     [Range(0, int.MaxValue, ErrorMessage = "Каллории не могут быть отрицательного значения")]
     public float Calorific { get; set; }
-    public List<string>? Allergens { get; set; }
+    public List<string> Allergens { get; set; } = new List<string>();
     public string? PriceVariants { get; set; }
     public string Unit { get; set; } = "";
     [NotMapped]

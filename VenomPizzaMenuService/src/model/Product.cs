@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
+﻿
 using VenomPizzaMenuService.src.dto;
 
 namespace VenomPizzaMenuService.src.model;
@@ -13,7 +11,7 @@ public class Product
     public string? Description { get; set; }
     public decimal Price { get; set; }
     public bool Available { get; set; }
-    public List<string>? Categories { get; set; }
+    public List<string> Categories { get; set; } = new List<string>();
     public Product(int id,string title) {
         Id= id;
         Title= title;

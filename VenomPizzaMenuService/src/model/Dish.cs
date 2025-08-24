@@ -6,20 +6,14 @@ namespace VenomPizzaMenuService.src.model;
 
 public class Dish : Product
 {
-    public List<string>? Ingredients { get; set; }
+    public List<string> Ingredients { get; set; } = new List<string>();
     public float Proteins { get; set; }
     public float Fats { get; set; }
     public float Carbohydrates { get; set; }
     public float Calorific { get; set; }
-    public List<string>? Allergens { get; set; }
-    public string? PriceVariants { get; set; }
+    public List<string> Allergens { get; set; } = new List<string>();
+    public List<PriceVariant> PriceVariants { get; set; }=new List<PriceVariant>();
     public string? Unit { get; set; }
-    [NotMapped]
-    public Dictionary<int, decimal> PriceVariantsDict
-    {
-        get => JsonSerializer.Deserialize<Dictionary<int, decimal>>(PriceVariants ?? "{}") ?? [];
-        set => PriceVariants = JsonSerializer.Serialize(value);
-    }
 
     public Dish(int id, string title) : base(id, title) { }
     public Dish(DishDto dto):base(dto)
@@ -30,7 +24,6 @@ public class Dish : Product
         Carbohydrates = dto.Carbohydrates;
         Calorific = dto.Calorific;
         Allergens = dto.Allergens;
-        PriceVariants = dto.PriceVariants;
         Unit = dto.Unit;
     }
 }

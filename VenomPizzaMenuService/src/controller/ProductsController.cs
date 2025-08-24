@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.service;
 
 namespace VenomPizzaMenuService.src.controller;
 [ApiController]
-[Route("api")]
+[Route("api/products")]
 public class ProductsController : Controller
 {
     private readonly ProductsService productsService;
@@ -11,7 +12,7 @@ public class ProductsController : Controller
     {
         this.productsService = productsService;
     }
-    [HttpGet("product/{id}")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetProductById([FromRoute]int id)
     {
         try
@@ -27,7 +28,7 @@ public class ProductsController : Controller
             return BadRequest(ex.Message);
         }
     }
-    [HttpGet("products")]
+    [HttpGet]
     public async Task<IActionResult> GetProductsPage([FromQuery]int page=1, [FromQuery] int size = 50)
     {
         if (page < 1 || size < 1)
@@ -43,6 +44,18 @@ public class ProductsController : Controller
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
+        }
+    }
+    [HttpPost]
+    public async Task<IActionResult> AddProduct(ProductDto dto)
+    {
+        try
+        {
+            return Ok(await productsService.AddProduct(dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(ex);
         }
     }
 }

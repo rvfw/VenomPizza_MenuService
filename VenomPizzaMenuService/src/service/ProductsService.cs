@@ -18,13 +18,10 @@ public class ProductsService:IProductsService
     public async Task<Product> AddProduct(ProductDto newProduct)
     {
         newProduct.Validate();
-        return await productsRepository.AddProduct(newProduct);
-    }
-
-    public async Task<Product> AddProduct(ComboDto newCombo)
-    {
-        newCombo.Validate();
-        return await productsRepository.AddProduct(newCombo);
+        if (newProduct is ComboDto)
+            return await productsRepository.AddProduct((ComboDto)newProduct);
+        else
+            return await productsRepository.AddProduct(newProduct);
     }
     #endregion
 

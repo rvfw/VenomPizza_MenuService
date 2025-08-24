@@ -14,6 +14,23 @@ namespace VenomPizzaMenuService.src.repository
         }
 
         #region create
+        public async Task<Product> AddProduct(ComboDto newCombo)
+        {
+            if (await dbContext.Products.AnyAsync(x => x.Id == newCombo.Id))
+                throw new ArgumentException("Товар с ID " + newCombo.Id + " уже существует");
+
+            var idList=newCombo.ProductsDict.Keys.ToList();
+            var foundedProducts = await dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
+            foreach (var searchedProduct in newCombo.ProductsDict)
+                if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
+                    throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
+
+            var addedCombo = dbContext.Products.Add(newCombo.ToProduct());
+            await dbContext.SaveChangesAsync();
+            dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x => new ComboProduct(addedCombo.Entity.Id, x.Key, x.Value)));
+            await dbContext.SaveChangesAsync();
+            return addedCombo.Entity;
+        }
         public async Task<Product> AddProduct(ProductDto newProduct)
         {
             if (await dbContext.Products.AnyAsync(x => x.Id == newProduct.Id))
@@ -21,20 +38,6 @@ namespace VenomPizzaMenuService.src.repository
             var addedProduct = dbContext.Products.Add(newProduct.ToProduct());
             await dbContext.SaveChangesAsync();
             return addedProduct.Entity;
-        }
-
-        public async Task<Product> AddProduct(ComboDto newCombo)
-        {
-            if (await dbContext.Products.AnyAsync(x => x.Id == newCombo.Id))
-                throw new ArgumentException("Товар с ID " + newCombo.Id + " уже существует");
-            var foundedProducts=await dbContext.Products.Where(x=>newCombo.ProductsDict.ContainsKey(x.Id)).ToListAsync();
-            foreach (var searchedProduct in newCombo.ProductsDict)
-                if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
-                    throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
-            var addedCombo = dbContext.Products.Add(newCombo.ToProduct());
-            await dbContext.SaveChangesAsync();
-            dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x=>new ComboProduct(addedCombo.Entity.Id, x.Key, x.Value)));
-            return addedCombo.Entity;
         }
         #endregion
 
