@@ -20,6 +20,8 @@ public class ProductsService:IProductsService
         newProduct.Validate();
         if (newProduct is ComboDto)
             return await productsRepository.AddProduct((ComboDto)newProduct);
+        else if(newProduct is DishDto)
+            return await productsRepository.AddProduct((DishDto)newProduct);
         else
             return await productsRepository.AddProduct(newProduct);
     }
@@ -30,7 +32,7 @@ public class ProductsService:IProductsService
     {
         return await productsRepository.GetProductById(id);
     }
-    public async Task<List<Product>> GetProductsPage(int page,int size)
+    public async Task<List<ProductInMenuDto>> GetProductsPage(int page,int size)
     {
         return await productsRepository.GetProductsPage(page,size);
     }

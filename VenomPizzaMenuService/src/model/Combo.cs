@@ -5,7 +5,6 @@ namespace VenomPizzaMenuService.src.model;
 
 public class Combo : Product
 {
-    [JsonIgnore]
     public List<ComboProduct> Products { get; set; }=new();
     public double Profit { get; }
     public Combo(int id,string title) : base(id, title) { }

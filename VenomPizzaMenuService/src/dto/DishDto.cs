@@ -20,9 +20,9 @@ public class DishDto:ProductDto
     public string? PriceVariants { get; set; }
     public string Unit { get; set; } = "";
     [NotMapped]
-    public Dictionary<int, decimal> PriceVariantsDict
+    public Dictionary<string, decimal> PriceVariantsDict
     {
-        get => JsonSerializer.Deserialize<Dictionary<int, decimal>>(PriceVariants ?? "{}") ?? [];
+        get => JsonSerializer.Deserialize<Dictionary<string, decimal>>(PriceVariants ?? "{}") ?? [];
         set => PriceVariants = JsonSerializer.Serialize(value);
     }
     public DishDto(int id,string? title) : base(id,title) { }

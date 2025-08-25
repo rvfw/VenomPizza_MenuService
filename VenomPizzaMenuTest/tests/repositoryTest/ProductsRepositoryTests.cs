@@ -80,7 +80,7 @@ public class ProductsRepositoryTests
     [Test]
     public void AddCombo_WrongProductId()
     {
-        var product = new ComboDto(1, "Combo") {ProductsDict=new() { [1]= 1 } };
+        var product = new ComboDto(1, "Combo") {ProductsDict=new() { [2]= 1 } };
         Assert.ThrowsAsync<ArgumentException>(async () => await _productsRepository.AddProduct(product), "Товара с ID 1 не существует");
     }
     #endregion
@@ -121,7 +121,6 @@ public class ProductsRepositoryTests
             Assert.That(result[i].Id, Is.EqualTo(products[i].Id));
             Assert.That(result[i].Title, Is.EqualTo(products[i].Title));
         }
-        Assert.That(((Dish)result[1]).Calorific, Is.EqualTo(100));
     }
     [Test]
     public async Task GetProductsPage_SecondPage()

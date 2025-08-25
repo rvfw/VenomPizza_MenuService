@@ -21,7 +21,7 @@ public class ProductDto
     public string? Description { get; set; }
     [Range(0,int.MaxValue,ErrorMessage ="Цена не может быть меньше 1 рубля")]
     public decimal Price { get; set; }
-    public bool Available { get; set; } = true;
+    public bool IsAvailable { get; set; } = true;
     public List<string> Categories { get; set; } = new List<string>();
     public ProductDto(int id,string? title)
     {

@@ -12,7 +12,6 @@ public class Dish : Product
     public float Carbohydrates { get; set; }
     public float Calorific { get; set; }
     public List<string> Allergens { get; set; } = new List<string>();
-    public List<PriceVariant> PriceVariants { get; set; }=new List<PriceVariant>();
     public string? Unit { get; set; }
 
     public Dish(int id, string title) : base(id, title) { }

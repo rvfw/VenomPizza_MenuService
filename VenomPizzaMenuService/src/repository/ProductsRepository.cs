@@ -14,37 +14,48 @@ namespace VenomPizzaMenuService.src.repository
         }
 
         #region create
+        public async Task<Product> AddProduct(ProductDto newProduct)
+        {
+            var addedProduct = await AddProductToDatabase(newProduct);
+            dbContext.PriceVariants.Add(new PriceVariant(addedProduct,"Default",addedProduct.Price));
+            await dbContext.SaveChangesAsync();
+            return addedProduct;
+        }
+        public async Task<Product> AddProduct(DishDto newDish)
+        {
+            var addedProduct = (Dish)await AddProductToDatabase(newDish);
+
+            var priceVariants = newDish.PriceVariantsDict.Select(x => new PriceVariant(addedProduct, x.Key, x.Value));
+            dbContext.PriceVariants.AddRange(priceVariants);
+            await dbContext.SaveChangesAsync();
+            
+            return addedProduct;
+        }
         public async Task<Product> AddProduct(ComboDto newCombo)
         {
-            if (await dbContext.Products.AnyAsync(x => x.Id == newCombo.Id))
-                throw new ArgumentException("Товар с ID " + newCombo.Id + " уже существует");
+            var addedCombo = await AddProductToDatabase(newCombo);
 
-            var idList=newCombo.ProductsDict.Keys.ToList();
+            var idList = newCombo.ProductsDict.Keys.ToList();
             var foundedProducts = await dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
             foreach (var searchedProduct in newCombo.ProductsDict)
                 if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
                     throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
 
-            var addedCombo = dbContext.Products.Add(newCombo.ToProduct());
+            dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x => new ComboProduct(addedCombo.Id, x.Key, x.Value)));
             await dbContext.SaveChangesAsync();
-            dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x => new ComboProduct(addedCombo.Entity.Id, x.Key, x.Value)));
-            await dbContext.SaveChangesAsync();
-            return addedCombo.Entity;
-        }
-        public async Task<Product> AddProduct(ProductDto newProduct)
-        {
-            if (await dbContext.Products.AnyAsync(x => x.Id == newProduct.Id))
-                throw new ArgumentException("Товар с ID " + newProduct.Id + " уже существует");
-            var addedProduct = dbContext.Products.Add(newProduct.ToProduct());
-            await dbContext.SaveChangesAsync();
-            return addedProduct.Entity;
+            return addedCombo;
         }
         #endregion
 
         #region read
-        public async Task<List<Product>> GetProductsPage(int page, int size)
+        public async Task<List<ProductInMenuDto>> GetProductsPage(int page, int size)
         {
-            var foundedProducts=await dbContext.Products.OrderBy(p=>p.Id).Skip(page * size).Take(size).ToListAsync();
+            var foundedProducts = await dbContext.Products
+                .OrderBy(p => p.Id)
+                .Skip(page * size)
+                .Take(size)
+                .Select(p => new ProductInMenuDto(p))
+                .ToListAsync();
             if (foundedProducts.Count() == 0)
                 throw new KeyNotFoundException("Страницы " + page + " не существует");
             return foundedProducts;
@@ -52,7 +63,11 @@ namespace VenomPizzaMenuService.src.repository
 
         public async Task<Product> GetProductById(int id)
         {
-            var foundedProduct= await dbContext.Products.FirstOrDefaultAsync(x => x.Id == id);
+            var foundedProduct= await dbContext.Products
+                .Include(p=>(p as Combo).Products)
+                .ThenInclude(cp=>cp.Product)
+                .Include(p=>p.PriceVariants)
+                .FirstOrDefaultAsync(x => x.Id == id);
             if (foundedProduct == null)
                 throw new KeyNotFoundException("Товара с ID " + id + " не найдено");
             return foundedProduct;
@@ -105,6 +120,14 @@ namespace VenomPizzaMenuService.src.repository
                 DeleteComboProducts(subject);
                 dbContext.ComboProducts.AddRange(dto.ProductsDict.Select(x=> new ComboProduct(subject.Id, x.Key, x.Value)));
             }
+        }
+        private async Task<Product> AddProductToDatabase(ProductDto newProduct)
+        {
+            if (await dbContext.Products.AnyAsync(x => x.Id == newProduct.Id))
+                throw new ArgumentException("Товар с ID " + newProduct.Id + " уже существует");
+            var addedProduct = dbContext.Products.Add(newProduct.ToProduct());
+            await dbContext.SaveChangesAsync();
+            return addedProduct.Entity;
         }
         #endregion
     }
