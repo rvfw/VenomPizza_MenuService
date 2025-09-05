@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.dto;
-
+[JsonDerivedType(typeof(ProductDto),"Product")]
+[JsonDerivedType(typeof(DishDto),"Dish")]
+[JsonDerivedType(typeof(ComboDto), "Combo")]
 public class ProductDto
 {
     [Required]
@@ -18,8 +21,8 @@ public class ProductDto
     public string? Description { get; set; }
     [Range(0,int.MaxValue,ErrorMessage ="Цена не может быть меньше 1 рубля")]
     public decimal Price { get; set; }
-    public bool Available { get; set; } = true;
-    public List<string>? Categories { get; set; }
+    public bool IsAvailable { get; set; } = true;
+    public List<string> Categories { get; set; } = new List<string>();
     public ProductDto(int id,string? title)
     {
         Id = id;

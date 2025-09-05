@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata.Ecma335;
-using VenomPizzaMenuService.src.dto;
+﻿using Microsoft.EntityFrameworkCore;
 using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.context;
@@ -13,6 +9,7 @@ public class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : Db
     public DbSet<Dish> Dishes { get; set; }
     public DbSet<Combo> Combos { get; set; }
     public DbSet<ComboProduct> ComboProducts { get; set; }
+    public DbSet<PriceVariant> PriceVariants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,5 +29,10 @@ public class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : Db
                 .HasForeignKey(cp => cp.ComboId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<PriceVariant>()
+            .HasOne(pv => pv.Product)
+            .WithMany(p => p.PriceVariants)
+            .HasForeignKey(pv => pv.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

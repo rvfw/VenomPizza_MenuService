@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.service;
 
 namespace VenomPizzaMenuService.src.controller;
 [ApiController]
-[Route("api")]
+[Route("api/products")]
 public class ProductsController : Controller
 {
     private readonly ProductsService productsService;
@@ -11,7 +12,7 @@ public class ProductsController : Controller
     {
         this.productsService = productsService;
     }
-    [HttpGet("product/{id}")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetProductById([FromRoute]int id)
     {
         try
@@ -27,7 +28,7 @@ public class ProductsController : Controller
             return BadRequest(ex.Message);
         }
     }
-    [HttpGet("products")]
+    [HttpGet]
     public async Task<IActionResult> GetProductsPage([FromQuery]int page=1, [FromQuery] int size = 50)
     {
         if (page < 1 || size < 1)
@@ -44,5 +45,38 @@ public class ProductsController : Controller
         {
             return BadRequest(ex.Message);
         }
+    }
+    [HttpPost]
+    public async Task<IActionResult> AddProduct(ProductDto dto)
+    {
+        try
+        {
+            return Ok(await productsService.AddProduct(dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(ex);
+        }
+    }
+    [HttpPost("{id}")]
+    public async Task<IActionResult> AddProductToCart([FromRoute] int id, [FromQuery]int quantity=1)
+    {
+        int userId =int.Parse( Request.Headers["Id"].ToString());
+        await productsService.AddProductToCart(userId, id, quantity);
+        return Accepted();
+    }
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProductQuantityInCart([FromRoute] int id, [FromQuery] int quantity = 1)
+    {
+        int userId = int.Parse(Request.Headers["Id"].ToString());
+        await productsService.UpdateProductQuantityInCart(userId, id, quantity);
+        return Accepted();
+    }
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProductInCart([FromRoute] int id)
+    {
+        int userId = int.Parse(Request.Headers["Id"].ToString());
+        await productsService.DeleteProductInCart(userId, id);
+        return Accepted();
     }
 }

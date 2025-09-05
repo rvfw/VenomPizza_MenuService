@@ -1,7 +1,9 @@
-﻿using VenomPizzaMenuService.src.dto;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using VenomPizzaMenuService.src.dto;
 
 namespace VenomPizzaMenuService.src.model;
-
+[Table("combos")]
 public class Combo : Product
 {
     public List<ComboProduct> Products { get; set; }=new();

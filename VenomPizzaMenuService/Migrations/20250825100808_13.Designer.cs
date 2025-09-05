@@ -7,14 +7,13 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VenomPizzaMenuService.src.context;
 
-
 #nullable disable
 
 namespace VenomPizzaMenuService.Migrations
 {
     [DbContext(typeof(ProductsDbContext))]
-    [Migration("20250819121326_3")]
-    partial class _3
+    [Migration("20250825100808_13")]
+    partial class _13
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,6 +43,31 @@ namespace VenomPizzaMenuService.Migrations
                     b.ToTable("ComboProducts");
                 });
 
+            modelBuilder.Entity("VenomPizzaMenuService.src.model.PriceVariant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Size")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PriceVariants");
+                });
+
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -52,9 +76,6 @@ namespace VenomPizzaMenuService.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Available")
-                        .HasColumnType("boolean");
-
                     b.PrimitiveCollection<List<string>>("Categories")
                         .IsRequired()
                         .HasColumnType("text[]");
@@ -62,9 +83,14 @@ namespace VenomPizzaMenuService.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<string>("Price")
-                        .IsRequired()
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -80,9 +106,6 @@ namespace VenomPizzaMenuService.Migrations
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
                 {
                     b.HasBaseType("VenomPizzaMenuService.src.model.Product");
-
-                    b.Property<double>("Profit")
-                        .HasColumnType("double precision");
 
                     b.ToTable("Combos");
                 });
@@ -104,19 +127,14 @@ namespace VenomPizzaMenuService.Migrations
                     b.Property<float>("Fats")
                         .HasColumnType("real");
 
-                    b.PrimitiveCollection<List<string>>("Ingridients")
+                    b.PrimitiveCollection<List<string>>("Ingredients")
                         .IsRequired()
                         .HasColumnType("text[]");
-
-                    b.Property<string>("PriceVariants")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<float>("Proteins")
                         .HasColumnType("real");
 
                     b.Property<string>("Unit")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.ToTable("Dishes");
@@ -141,6 +159,17 @@ namespace VenomPizzaMenuService.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("VenomPizzaMenuService.src.model.PriceVariant", b =>
+                {
+                    b.HasOne("VenomPizzaMenuService.src.model.Product", "Product")
+                        .WithMany("PriceVariants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
                 {
                     b.HasOne("VenomPizzaMenuService.src.model.Product", null)
@@ -157,6 +186,11 @@ namespace VenomPizzaMenuService.Migrations
                         .HasForeignKey("VenomPizzaMenuService.src.model.Dish", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("VenomPizzaMenuService.src.model.Product", b =>
+                {
+                    b.Navigation("PriceVariants");
                 });
 
             modelBuilder.Entity("VenomPizzaMenuService.src.model.Combo", b =>
