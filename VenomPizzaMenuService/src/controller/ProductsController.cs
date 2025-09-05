@@ -58,4 +58,25 @@ public class ProductsController : Controller
             return BadRequest(ex);
         }
     }
+    [HttpPost("{id}")]
+    public async Task<IActionResult> AddProductToCart([FromRoute] int id, [FromQuery]int quantity=1)
+    {
+        int userId =int.Parse( Request.Headers["Id"].ToString());
+        await productsService.AddProductToCart(userId, id, quantity);
+        return Accepted();
+    }
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProductQuantityInCart([FromRoute] int id, [FromQuery] int quantity = 1)
+    {
+        int userId = int.Parse(Request.Headers["Id"].ToString());
+        await productsService.UpdateProductQuantityInCart(userId, id, quantity);
+        return Accepted();
+    }
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProductInCart([FromRoute] int id)
+    {
+        int userId = int.Parse(Request.Headers["Id"].ToString());
+        await productsService.DeleteProductInCart(userId, id);
+        return Accepted();
+    }
 }

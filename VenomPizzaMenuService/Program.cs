@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using VenomPizzaMenuService.src.context;
 using VenomPizzaMenuService.src.kafka;
@@ -14,13 +15,27 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<ProductsRepository>();
+
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
-builder.Services.AddSingleton<IProducer<string, string>>(provider =>
+builder.Services.AddSingleton(provider =>
 {
     var config = new ProducerConfig { BootstrapServers = builder.Configuration["Kafka:BootstrapServers"] };
     return new ProducerBuilder<string,string>(config).Build();
 });
-//builder.Services.AddHostedService<KafkaConsumerService>();
+builder.Services.AddSingleton(provider =>
+{
+    var kafkaSettings = provider.GetRequiredService<IOptions<KafkaSettings>>().Value;
+    var config = new ConsumerConfig
+    {
+        BootstrapServers = kafkaSettings.BootstrapServers,
+        GroupId = kafkaSettings.GroupId,
+        AutoOffsetReset = AutoOffsetReset.Earliest,
+        EnableAutoCommit = false,
+    };
+    return new ConsumerBuilder<string,string>(config).Build();
+});
+builder.Services.AddHostedService<KafkaConsumerService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "MyCorsPolicy",

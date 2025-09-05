@@ -1,5 +1,4 @@
-﻿
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Options;
 using System.Runtime;
@@ -11,62 +10,64 @@ namespace VenomPizzaMenuService.src.kafka;
 
 public class KafkaConsumerService : BackgroundService
 {
-    private readonly KafkaSettings settings;
-    private readonly IServiceProvider serviceProvider;
-    private readonly IConsumer<string, string> consumer;
-    private readonly ILogger<KafkaConsumerService> logger;
+    private readonly KafkaSettings _settings;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IConsumer<string, string> _consumer;
+    private readonly ILogger<KafkaConsumerService> _logger;
     public KafkaConsumerService(IOptions<KafkaSettings> settings,ILogger<KafkaConsumerService> logger,IServiceProvider serviceProvider)
     {
-        this.logger=logger;
-        this.settings=settings.Value; 
-        this.serviceProvider=serviceProvider;
+        _logger=logger;
+        _settings=settings.Value; 
+        _serviceProvider=serviceProvider;
         var config = new ConsumerConfig
         {
-            BootstrapServers = this.settings.BootstrapServers,
-            GroupId = this.settings.GroupId,
+            BootstrapServers = this._settings.BootstrapServers,
+            GroupId = this._settings.GroupId,
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
-        consumer = new ConsumerBuilder<string, string>(config).Build();
+        _consumer = new ConsumerBuilder<string, string>(config).Build();
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var topics = new[] {
-            settings.Topics.ProductCreated,
-            settings.Topics.ProductUpdated,
-            settings.Topics.ProductDeleted
+            _settings.Topics.ProductCreated,
+            _settings.Topics.ProductUpdated,
+            _settings.Topics.ProductDeleted
         };
-        consumer.Subscribe(topics);
+        _consumer.Subscribe(topics);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var result = consumer.Consume(stoppingToken);
-                logger.LogInformation($"Получено из топика {result.Topic}:\n{result.Message.Value}");
-                using (var scope = serviceProvider.CreateScope())
+                var result =await Task.Run(()=> _consumer.Consume(stoppingToken),stoppingToken);
+                _logger.LogInformation($"Получено из топика {result.Topic}:\n{result.Message.Value}");
+                using (var scope = _serviceProvider.CreateScope())
                 {
                     var productsService = scope.ServiceProvider.GetRequiredService<ProductsService>();
                     await ProccessRequestAsync(productsService,result.Topic, result.Message.Value);
                 }
+                _consumer.Commit(result);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Ошибка обработки запроса");
+                _logger.LogError(ex, "Ошибка обработки запроса");
+                break;
             }
         }
-        consumer.Close();
+        _consumer.Close();
     }
     public async Task ProccessRequestAsync(IProductsService productsService,string topic,string message)
     {
-        if (new List<string>() { settings.Topics.ProductCreated, settings.Topics.ProductUpdated }.Contains(topic))
+        if (new List<string>() { _settings.Topics.ProductCreated, _settings.Topics.ProductUpdated }.Contains(topic))
         {
             ProductDto dto = JsonSerializer.Deserialize<ProductDto>(message,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            if (topic == settings.Topics.ProductCreated)
+            if (topic == _settings.Topics.ProductCreated)
                 await productsService.AddProduct(dto);
-            else if (topic == settings.Topics.ProductUpdated)
+            else if (topic == _settings.Topics.ProductUpdated)
                 await productsService.UpdateProductInfo(dto);
         }
-        else if (topic == settings.Topics.ProductDeleted)
+        else if (topic == _settings.Topics.ProductDeleted)
             await productsService.DeleteProductById(int.Parse(message));
     }
 }
