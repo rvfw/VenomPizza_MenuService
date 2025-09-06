@@ -15,7 +15,7 @@ public class ComboDto:ProductDto
         get => JsonSerializer.Deserialize<Dictionary<int, int>>(Products ?? "{}") ?? [];
         set => Products = JsonSerializer.Serialize(value);
     }
-    public ComboDto(int id, string? title) : base(id, title) { }
+    public ComboDto(int id, string title) : base(id, title) { }
     public override Product ToProduct()
     {
         return new Combo(this);

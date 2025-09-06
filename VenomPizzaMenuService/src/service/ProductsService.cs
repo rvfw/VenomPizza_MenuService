@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SQLitePCL;
 using System.Text.Json;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.kafka;
@@ -12,13 +13,14 @@ namespace VenomPizzaMenuService.src.service;
 
 public class ProductsService:IProductsService
 {
-    private readonly ProductsRepository productsRepository;
+    private readonly ProductsRepository _productsRepository;
     private readonly IProducer<string, string> _producer;
     private readonly KafkaSettings _kafkaSettings;
     private readonly ILogger<IProductsService> _logger;
+
     public ProductsService(ProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger)
     {
-        this.productsRepository = productsRepository;
+        this._productsRepository = productsRepository;
         _kafkaSettings = settings.Value;
         _producer = producer;
         _logger = logger;
@@ -29,33 +31,37 @@ public class ProductsService:IProductsService
     {
         newProduct.Validate();
         if (newProduct is ComboDto)
-            return await productsRepository.AddProduct((ComboDto)newProduct);
+            return await _productsRepository.AddProduct((ComboDto)newProduct);
         else if(newProduct is DishDto)
-            return await productsRepository.AddProduct((DishDto)newProduct);
+            return await _productsRepository.AddProduct((DishDto)newProduct);
         else
-            return await productsRepository.AddProduct(newProduct);
+            return await _productsRepository.AddProduct(newProduct);
     }
 
     public async Task AddProductToCart(int cartId,int id,int quantity)
     {
+        if (await _productsRepository.GetProductById(id) == null)
+            throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
+        var kafkaEvent=new KafkaEvent<CartProductDto>("product_added",new CartProductDto(cartId, id, quantity));
         var kafkaMessage = new Message<string, string>
         {
             Key = cartId.ToString(),
-            Value = JsonSerializer.Serialize(new CartProductDto(cartId, id, quantity))
+            Value = JsonSerializer.Serialize(kafkaEvent)
         };
-        await _producer.ProduceAsync(_kafkaSettings.Topics.ProductAddedInCart, kafkaMessage);
-        _logger.LogInformation($"Отправлено {kafkaMessage} в {_kafkaSettings.Topics.ProductAddedInCart}");
+        await _producer.ProduceAsync(_kafkaSettings.Topics.CartUpdated, kafkaMessage);
+        _logger.LogInformation($"Отправлено {kafkaMessage.Value} в {_kafkaSettings.Topics.CartUpdated}");
     }
     #endregion
 
     #region read
     public async Task<Product> GetProductById(int id)
     {
-        return await productsRepository.GetProductById(id);
+        return await _productsRepository.GetProductById(id);
     }
+
     public async Task<List<ProductInMenuDto>> GetProductsPage(int page,int size)
     {
-        return await productsRepository.GetProductsPage(page,size);
+        return await _productsRepository.GetProductsPage(page,size);
     }
     #endregion
 
@@ -63,36 +69,38 @@ public class ProductsService:IProductsService
     public async Task<Product> UpdateProductInfo(ProductDto updatedProduct)
     {
         updatedProduct.Validate();
-        return await productsRepository.UpdateProductInfo(updatedProduct);
+        return await _productsRepository.UpdateProductInfo(updatedProduct);
     }
 
     public async Task UpdateProductQuantityInCart(int cartId, int id, int quantity)
     {
+        var kafkaEvent = new KafkaEvent<CartProductDto>("product_updated", new CartProductDto(cartId, id, quantity));
         var kafkaMessage = new Message<string, string>
         {
             Key = cartId.ToString(),
-            Value = JsonSerializer.Serialize(new CartProductDto(cartId, id, quantity))
+            Value = JsonSerializer.Serialize(kafkaEvent)
         };
-        await _producer.ProduceAsync(_kafkaSettings.Topics.ProductQuantityUpdated, kafkaMessage);
-        _logger.LogInformation($"Отправлено {kafkaMessage} в {_kafkaSettings.Topics.ProductQuantityUpdated}");
+        await _producer.ProduceAsync(_kafkaSettings.Topics.CartUpdated, kafkaMessage);
+        _logger.LogInformation($"Отправлено {kafkaMessage.Value} в {_kafkaSettings.Topics.CartUpdated}");
     }
     #endregion
 
     #region delete
     public async Task DeleteProductById(int id)
     {
-        await productsRepository.DeleteProductById(id);
+        await _productsRepository.DeleteProductById(id);
     }
 
     public async Task DeleteProductInCart(int cartId, int id)
     {
+        var kafkaEvent = new KafkaEvent<CartProductDto>("product_deleted", new CartProductDto(cartId, id));
         var kafkaMessage = new Message<string, string>
         {
             Key = cartId.ToString(),
-            Value = JsonSerializer.Serialize(new CartProductDto(cartId, id))
+            Value = JsonSerializer.Serialize(kafkaEvent)
         };
-        await _producer.ProduceAsync(_kafkaSettings.Topics.ProductDeletedInCart, kafkaMessage);
-        _logger.LogInformation($"Отправлено {kafkaMessage} в {_kafkaSettings.Topics.ProductDeletedInCart}");
+        await _producer.ProduceAsync(_kafkaSettings.Topics.CartUpdated, kafkaMessage);
+        _logger.LogInformation($"Отправлено {kafkaMessage.Value} в {_kafkaSettings.Topics.CartUpdated}");
     }
     #endregion
 }

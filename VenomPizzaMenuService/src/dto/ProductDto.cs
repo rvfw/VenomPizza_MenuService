@@ -10,12 +10,12 @@ namespace VenomPizzaMenuService.src.dto;
 public class ProductDto
 {
     [Required]
-    [Range(1, int.MaxValue,ErrorMessage ="ID не может быть меньше 1")]
+    [Range(0, int.MaxValue,ErrorMessage ="Id не может быть отрицательным")]
     public int Id { get; set; }
     [Required]
     [NotNull]
     [Length(4,50,ErrorMessage ="Название продукта должно быть от 4 до 50 символов")]
-    public string? Title { get; set; }
+    public string Title { get; set; }
     public string? ImageUrl { get; set; }
     [Length(0,500, ErrorMessage = "Описание продукта не может быть больше 500 символов")]
     public string? Description { get; set; }
@@ -23,7 +23,7 @@ public class ProductDto
     public decimal Price { get; set; }
     public bool IsAvailable { get; set; } = true;
     public List<string> Categories { get; set; } = new List<string>();
-    public ProductDto(int id,string? title)
+    public ProductDto(int id,string title)
     {
         Id = id;
         Title = title;

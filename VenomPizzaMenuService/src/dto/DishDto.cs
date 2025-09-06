@@ -5,7 +5,7 @@ using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.dto;
 
-public class DishDto:ProductDto
+public class DishDto: ProductDto
 {
     public List<string> Ingredients { get; set; } = new List<string>();
     [Range(0, int.MaxValue,ErrorMessage ="Белки не могут быть отрицательного значения")]
@@ -25,7 +25,7 @@ public class DishDto:ProductDto
         get => JsonSerializer.Deserialize<Dictionary<string, decimal>>(PriceVariants ?? "{}") ?? [];
         set => PriceVariants = JsonSerializer.Serialize(value);
     }
-    public DishDto(int id,string? title) : base(id,title) { }
+    public DishDto(int id,string title) : base(id,title) { }
     public override Product ToProduct()
     {
         return new Dish(this);

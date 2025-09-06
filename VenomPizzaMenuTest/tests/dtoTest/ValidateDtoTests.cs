@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 using VenomPizzaMenuService.src.dto;
 
 namespace VenomPizzaMenuTest.tests.dtoTest;
@@ -51,13 +46,13 @@ public class ValidateDtoTests
     [Test]
     public void ProductDto_WrongId()
     {
-        var dto = new ProductDto(0, validTitles[0]);
+        var dto = new ProductDto(-1, validTitles[0]);
         Assert.Throws<ValidationException>(dto.Validate);
     }
     [Test]
     public void ProductDto_WrongPrice()
     {
-        var dto = new ProductDto(0, validTitles[0]) { Price=-0.1M};
+        var dto = new ProductDto(-1, validTitles[0]) { Price=-0.1M};
         Assert.Throws<ValidationException>(dto.Validate);
     }
     [Test]

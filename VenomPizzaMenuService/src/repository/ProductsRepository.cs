@@ -51,6 +51,7 @@ namespace VenomPizzaMenuService.src.repository
         public async Task<List<ProductInMenuDto>> GetProductsPage(int page, int size)
         {
             var foundedProducts = await dbContext.Products
+                .AsNoTracking()
                 .OrderBy(p => p.Id)
                 .Skip(page * size)
                 .Take(size)
@@ -67,6 +68,7 @@ namespace VenomPizzaMenuService.src.repository
                 .Include(p=>(p as Combo).Products)
                 .ThenInclude(cp=>cp.Product)
                 .Include(p=>p.PriceVariants)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (foundedProduct == null)
                 throw new KeyNotFoundException("Товара с ID " + id + " не найдено");

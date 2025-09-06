@@ -1,7 +1,5 @@
 ﻿using Confluent.Kafka;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Options;
-using System.Runtime;
 using System.Text.Json;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.service;
@@ -14,6 +12,7 @@ public class KafkaConsumerService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConsumer<string, string> _consumer;
     private readonly ILogger<KafkaConsumerService> _logger;
+
     public KafkaConsumerService(IOptions<KafkaSettings> settings,ILogger<KafkaConsumerService> logger,IServiceProvider serviceProvider)
     {
         _logger=logger;
@@ -21,20 +20,16 @@ public class KafkaConsumerService : BackgroundService
         _serviceProvider=serviceProvider;
         var config = new ConsumerConfig
         {
-            BootstrapServers = this._settings.BootstrapServers,
-            GroupId = this._settings.GroupId,
+            BootstrapServers = _settings.BootstrapServers,
+            GroupId = _settings.GroupId,
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
         _consumer = new ConsumerBuilder<string, string>(config).Build();
     }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var topics = new[] {
-            _settings.Topics.ProductCreated,
-            _settings.Topics.ProductUpdated,
-            _settings.Topics.ProductDeleted
-        };
-        _consumer.Subscribe(topics);
+        _consumer.Subscribe(_settings.Topics.ManageProduct);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -48,26 +43,35 @@ public class KafkaConsumerService : BackgroundService
                 }
                 _consumer.Commit(result);
             }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка обработки запроса");
-                break;
             }
         }
         _consumer.Close();
     }
+
     public async Task ProccessRequestAsync(IProductsService productsService,string topic,string message)
     {
-        if (new List<string>() { _settings.Topics.ProductCreated, _settings.Topics.ProductUpdated }.Contains(topic))
+        if (topic==_settings.Topics.ManageProduct)
         {
-            ProductDto dto = JsonSerializer.Deserialize<ProductDto>(message,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            if (topic == _settings.Topics.ProductCreated)
-                await productsService.AddProduct(dto);
-            else if (topic == _settings.Topics.ProductUpdated)
-                await productsService.UpdateProductInfo(dto);
+            KafkaEvent<ProductDto>? dto = JsonSerializer.Deserialize<KafkaEvent<ProductDto>>(message,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (dto == null)
+                throw new ArgumentException("Пустой json");
+            _logger.LogInformation($"Обработка ивента типа {dto.EventType}");
+            if (dto.EventType == "product_added" && dto.Data != null)
+                await productsService.AddProduct(dto.Data);
+            else if (dto.EventType == "product_updated" && dto.Data != null)
+                await productsService.UpdateProductInfo(dto.Data);
+            else if (dto.EventType == "product_deleted")
+                await productsService.DeleteProductById(dto.Id);
+            else
+                throw new ArgumentException("Неверный тип ивента, есть только: product_added, product_updated, product_deleted");
         }
-        else if (topic == _settings.Topics.ProductDeleted)
-            await productsService.DeleteProductById(int.Parse(message));
     }
 }
