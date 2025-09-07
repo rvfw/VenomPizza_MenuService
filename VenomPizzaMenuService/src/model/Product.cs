@@ -21,6 +21,7 @@ public class Product
     [Column("categories")]
     public List<string> Categories { get; set; } = new List<string>();
     public List<PriceVariant> PriceVariants { get; set; } = new List<PriceVariant>();
+    protected Product() { }
     public Product(int id,string title) {
         Id= id;
         Title= title;

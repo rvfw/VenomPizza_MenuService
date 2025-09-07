@@ -48,13 +48,14 @@ namespace VenomPizzaMenuService.src.repository
         #endregion
 
         #region read
-        public async Task<List<ProductInMenuDto>> GetProductsPage(int page, int size)
+        public async Task<List<ProductShortInfoDto>> GetProductsPage(int page, int size)
         {
             var foundedProducts = await dbContext.Products
+                .AsNoTracking()
                 .OrderBy(p => p.Id)
                 .Skip(page * size)
                 .Take(size)
-                .Select(p => new ProductInMenuDto(p))
+                .Select(p => new ProductShortInfoDto(p))
                 .ToListAsync();
             if (foundedProducts.Count() == 0)
                 throw new KeyNotFoundException("Страницы " + page + " не существует");
@@ -67,10 +68,21 @@ namespace VenomPizzaMenuService.src.repository
                 .Include(p=>(p as Combo).Products)
                 .ThenInclude(cp=>cp.Product)
                 .Include(p=>p.PriceVariants)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (foundedProduct == null)
                 throw new KeyNotFoundException("Товара с ID " + id + " не найдено");
             return foundedProduct;
+        }
+
+        public async Task<(int Id,string Title)?> GetProductIdAndTitle(int productId)
+        {
+            var foundedProduct=await dbContext.Products
+                .Select(p=>new {p.Id,p.Title})
+                .FirstOrDefaultAsync(x=>x.Id== productId);
+            if (foundedProduct == null)
+                return null;
+            return (foundedProduct.Id,foundedProduct.Title);
         }
         #endregion
 

@@ -32,9 +32,7 @@ public class ProductConsumerTests
             GroupId = "test-group",
             Topics = new KafkaTopics
             {
-                ProductCreated = "product-created",
-                ProductUpdated = "product-updated",
-                ProductDeleted = "product-deleted"
+                ManageProduct = "manage-product",
             }
         };
         _mockOptions.Setup(o => o.Value).Returns(kafkaSettings);
@@ -45,37 +43,34 @@ public class ProductConsumerTests
         consumerService.Dispose();
     }
     [Test]
-    public async Task ProductCreatedTopic_Success()
+    public async Task ProductAdded_Success()
     {
-        var topic = "product-created";
-        var message = """ {"Id":1,"Title":"Product"} """;
+        var message = """{"EventType":"product_added", "Data": {"Id":1,"Title":"Product"} }""";
         _mockProductsService.Setup(s => s.AddProduct(new ProductDto(1, "Product"))).ReturnsAsync(new Product(1, "Product"));
 
-        await consumerService.ProccessRequestAsync(_mockProductsService.Object, topic, message);
+        await consumerService.ProccessRequestAsync(_mockProductsService.Object, "manage-product", message);
 
         _mockProductsService.Verify(s=>s.AddProduct(It.Is<ProductDto>(dto=>
         dto.Id==1 && dto.Title=="Product")), Times.Once);
     }
     [Test]
-    public async Task ProductUpdatedTopic_Success()
+    public async Task ProductUpdated_Success()
     {
-        var topic = "product-updated";
-        var message = """ {"Id":1,"Title":"UpdatedProduct"} """;
+        var message = """ {"EventType":"product_updated", "Data": {"Id":1,"Title":"UpdatedProduct"}} """;
         _mockProductsService.Setup(s => s.UpdateProductInfo(new ProductDto(1, "UpdatedProduct"))).ReturnsAsync(new Product(1, "UpdatedProduct"));
 
-        await consumerService.ProccessRequestAsync(_mockProductsService.Object, topic, message);
+        await consumerService.ProccessRequestAsync(_mockProductsService.Object, "manage-product", message);
 
         _mockProductsService.Verify(s => s.UpdateProductInfo(It.Is<ProductDto>(dto =>
         dto.Id == 1 && dto.Title == "UpdatedProduct")), Times.Once);
     }
     [Test]
-    public async Task ProductDeletedTopic_Success()
+    public async Task ProductDeleted_Success()
     {
-        var topic = "product-deleted";
-        var message = "1";
+        var message = """ {"EventType":"product_deleted", "Id":1}""";
         _mockProductsService.Setup(s => s.DeleteProductById(1));
 
-        await consumerService.ProccessRequestAsync(_mockProductsService.Object, topic, message);
+        await consumerService.ProccessRequestAsync(_mockProductsService.Object, "manage-product", message);
 
         _mockProductsService.Verify(s => s.DeleteProductById(It.Is<int>(x=>x==1)), Times.Once);
     }

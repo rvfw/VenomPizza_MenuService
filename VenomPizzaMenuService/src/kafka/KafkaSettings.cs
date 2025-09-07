@@ -8,10 +8,9 @@ public class KafkaSettings
 }
 public class KafkaTopics
 {
-    public string ProductCreated { get; set; }
+    public string ManageProduct { get; set; }
+
     public string ProductUpdated { get; set; }
-    public string ProductDeleted { get; set; }
-    public string ProductAddedInCart { get; set; }
-    public string ProductQuantityUpdated { get; set; }
-    public string ProductDeletedInCart { get; set; }
+
+    public string CartUpdated { get; set; }
 }
