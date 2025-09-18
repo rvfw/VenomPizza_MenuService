@@ -23,83 +23,82 @@ public class ProductsService:IProductsService
         _logger = logger;
     }
 
-    #region create
-    public async Task<Product> AddProduct(ProductDto newProduct)
-    {
-        newProduct.Validate();
-        Product result;
-        if (newProduct is ComboDto)
-            result= await _productsRepository.AddProduct((ComboDto)newProduct);
-        else if(newProduct is DishDto)
-            result= await _productsRepository.AddProduct((DishDto)newProduct);
-        else
-            result= await _productsRepository.AddProduct(newProduct);
-        await SendInProductUpdatedTopic("product_added", new ProductShortInfoDto(result));
-        return result;
-    }
-
-    public async Task AddProductToCart(int cartId,int id,int quantity)
-    {
-        var foundedProduct = await _productsRepository.GetProductById(id);
-        if (foundedProduct == null)
-            throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
-        if (!foundedProduct.IsAvailable)
-            throw new BadHttpRequestException($"Продукт {foundedProduct.Title} с Id {foundedProduct.Id} не доступен для заказа на данный момент");
-        await SendInCartUpdatedTopic("product_added",cartId, id, quantity);
-    }
-    #endregion
-
-    #region read
     public async Task<Product> GetProductById(int id)
     {
         return await _productsRepository.GetProductById(id);
     }
 
-    public async Task<List<ProductShortInfoDto>> GetProductsPage(int page,int size)
+    public async Task<List<ProductShortInfoDto>> GetProductsPage(int page, int size)
     {
-        return await _productsRepository.GetProductsPage(page,size);
+        return await _productsRepository.GetProductsPage(page, size);
     }
-    #endregion
 
-    #region update
+    #region productUpdate
+    public async Task<Product> AddProduct(ProductDto newProduct)
+    {
+        newProduct.Validate();
+        Product result;
+        if (newProduct is ComboDto)
+            result = await _productsRepository.AddProduct((ComboDto)newProduct);
+        else if (newProduct is DishDto)
+            result = await _productsRepository.AddProduct((DishDto)newProduct);
+        else
+            result = await _productsRepository.AddProduct(newProduct);
+        await SendInProductUpdatedTopic("product_added", new ProductShortInfoDto(result));
+        return result;
+    }
+
     public async Task<Product> UpdateProductInfo(ProductDto updatedProduct)
     {
         updatedProduct.Validate();
-        var result= await _productsRepository.UpdateProductInfo(updatedProduct);
+        var result = await _productsRepository.UpdateProductInfo(updatedProduct);
         await SendInProductUpdatedTopic("product_updated", new ProductShortInfoDto(result));
         return result;
     }
 
-    public async Task UpdateProductQuantityInCart(int cartId, int id, int quantity)
-    {
-        var foundedProduct= await _productsRepository.GetProductById(id);
-        if (foundedProduct == null)
-            throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
-        await SendInCartUpdatedTopic("product_updated",cartId, id, quantity);
-    }
-    #endregion
-
-    #region delete
     public async Task DeleteProductById(int id)
     {
-        var foundedProduct=await _productsRepository.GetProductIdAndTitle(id);
+        var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,0);
         await _productsRepository.DeleteProductById(id);
-        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.Value.Id,foundedProduct.Value.Title));
-    }
-
-    public async Task DeleteProductInCart(int cartId, int id)
-    {
-        var foundedProduct=await _productsRepository.GetProductIdAndTitle(id);
-        if (foundedProduct == null)
-            throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
-        await SendInCartUpdatedTopic("product_deleted",cartId, id);
+        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.id, foundedProduct.title));
     }
     #endregion
 
-    #region private
-    private async Task SendInCartUpdatedTopic(string eventType, int cartId, int id, int quantity = 1)
+    #region cartUpdate
+    public async Task AddProductToCart(int cartId, int id,int priceId, int quantity)
     {
-        var kafkaEvent = new KafkaEvent<CartProductDto>(eventType, new CartProductDto(cartId, id, quantity));
+        var foundedProduct = await _productsRepository.GetProductById(id);
+        if (foundedProduct == null)
+            throw new KeyNotFoundException($"Продукта c Id {id} не найдено");
+        if (foundedProduct.PriceVariants.FirstOrDefault(x => x.PriceId == priceId) == null)
+            throw new KeyNotFoundException($"Цена размера с Id {priceId} для продукта {id} не найдена");
+        if (!foundedProduct.IsAvailable)
+            throw new BadHttpRequestException($"Продукт {foundedProduct.Title} с Id {foundedProduct.Id} не доступен для заказа на данный момент");
+        await SendInCartUpdatedTopic("product_added", cartId, id,priceId, quantity);
+    }
+
+    public async Task UpdateProductQuantityInCart(int cartId, int id,int priceId, int quantity)
+    {
+        var foundedProduct = await _productsRepository.GetProductById(id);
+        if (foundedProduct == null)
+            throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
+        if (foundedProduct.PriceVariants.FirstOrDefault(x => x.PriceId == priceId) == null)
+            throw new KeyNotFoundException($"Цена размера c Id {priceId} для продукта {id} не найдена");
+        await SendInCartUpdatedTopic("product_updated", cartId, id, priceId, quantity);
+    }
+
+    public async Task DeleteProductInCart(int cartId, int id,int priceId)
+    {
+        var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,priceId);
+        await SendInCartUpdatedTopic("product_deleted", cartId, id,priceId);
+    } 
+    #endregion
+
+
+    #region private
+    private async Task SendInCartUpdatedTopic(string eventType, int cartId, int id,int priceId, int quantity = 1)
+    {
+        var kafkaEvent = new KafkaEvent<CartProductDto>(eventType, new CartProductDto(cartId, id,priceId, quantity));
         var kafkaMessage = new Message<string, string>
         {
             Key = cartId.ToString(),
@@ -118,7 +117,7 @@ public class ProductsService:IProductsService
             Value = JsonSerializer.Serialize(kafkaEvent)
         };
         await _producer.ProduceAsync(_kafkaSettings.Topics.ProductUpdated, kafkaMessage);
-        _logger.LogInformation($"Отправлено {kafkaMessage.Value} в {_kafkaSettings.Topics.CartUpdated}");
+        _logger.LogInformation($"Отправлено {kafkaMessage.Value} в {_kafkaSettings.Topics.ProductUpdated}");
     }
     #endregion
 }

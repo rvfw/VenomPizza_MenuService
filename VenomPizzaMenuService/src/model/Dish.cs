@@ -19,8 +19,6 @@ public class Dish : Product
     public float Calorific { get; set; }
     [Column("allergens")]
     public List<string> Allergens { get; set; } = new List<string>();
-    [Column("unit")]
-    public string? Unit { get; set; }
 
     public Dish(int id, string title) : base(id, title) { }
     public Dish(DishDto dto):base(dto)
@@ -31,6 +29,5 @@ public class Dish : Product
         Carbohydrates = dto.Carbohydrates;
         Calorific = dto.Calorific;
         Allergens = dto.Allergens;
-        Unit = dto.Unit;
     }
 }

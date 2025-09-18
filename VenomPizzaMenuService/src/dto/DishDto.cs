@@ -17,14 +17,6 @@ public class DishDto: ProductDto
     [Range(0, int.MaxValue, ErrorMessage = "Каллории не могут быть отрицательного значения")]
     public float Calorific { get; set; }
     public List<string> Allergens { get; set; } = new List<string>();
-    public string? PriceVariants { get; set; }
-    public string Unit { get; set; } = "";
-    [NotMapped]
-    public Dictionary<string, decimal> PriceVariantsDict
-    {
-        get => JsonSerializer.Deserialize<Dictionary<string, decimal>>(PriceVariants ?? "{}") ?? [];
-        set => PriceVariants = JsonSerializer.Serialize(value);
-    }
     public DishDto(int id,string title) : base(id,title) { }
     public override Product ToProduct()
     {

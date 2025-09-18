@@ -34,5 +34,7 @@ public class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : Db
             .WithMany(p => p.PriceVariants)
             .HasForeignKey(pv => pv.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PriceVariant>()
+            .HasKey(pv => new {pv.ProductId,pv.PriceId});
     }
 }
