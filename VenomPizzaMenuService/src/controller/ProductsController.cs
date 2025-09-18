@@ -48,6 +48,7 @@ public class ProductsController : Controller
         }
     }
 
+    #region productUpdateTemp
     [HttpPost]
     public async Task<IActionResult> AddProduct(ProductDto dto)
     {
@@ -60,41 +61,83 @@ public class ProductsController : Controller
             return BadRequest(ex);
         }
     }
-
-    [ValidateUserId]
-    [HttpPost("{id}")]
-    public async Task<IActionResult> AddProductToCart([FromRoute] int id, [FromQuery]int quantity=1)
+    [HttpPut]
+    public async Task<IActionResult> UpdateProduct(ProductDto dto)
     {
-        if(id<0)
-            return BadRequest("Id продукта должно быть положительным");
+        try
+        {
+            return Ok(await _productsService.UpdateProductInfo(dto));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(ex);
+        }
+    }
+    [HttpDelete]
+    public async Task<IActionResult> DeleteProduct([FromQuery] int id)
+    {
+        try
+        {
+            await _productsService.DeleteProductById(id);
+            return Ok();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(ex);
+        }
+    } 
+    #endregion
+
+    [HttpPost("{id}")]
+    [ValidateUserId]
+    public async Task<IActionResult> AddProductToCart([FromRoute] int id, [FromQuery]int priceId, [FromQuery]int quantity=1)
+    {
         if(quantity<1)
             return BadRequest("Кол-во продукта должно быть больше 0");
         int userId = (int)HttpContext.Items["Id"]!;
-        await _productsService.AddProductToCart(userId, id, quantity);
-        return Accepted();
+        try
+        {
+            await _productsService.AddProductToCart(userId, id, priceId, quantity);
+            return Accepted();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
     [ValidateUserId]
-    public async Task<IActionResult> UpdateProductQuantityInCart([FromRoute] int id, [FromQuery] int quantity = 1)
+    public async Task<IActionResult> UpdateProductQuantityInCart([FromRoute] int id, [FromQuery] int priceId, [FromQuery] int quantity = 1)
     {
-        if (id < 0)
-            return BadRequest("Id продукта должно быть положительным");
         if (quantity < 1)
             return BadRequest("Кол-во продукта должно быть больше 0");
+
         int userId = (int)HttpContext.Items["Id"]!;
-        await _productsService.UpdateProductQuantityInCart(userId, id, quantity);
-        return Accepted();
+        try
+        {
+            await _productsService.UpdateProductQuantityInCart(userId, id, priceId, quantity);
+            return Accepted();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]
     [ValidateUserId]
-    public async Task<IActionResult> DeleteProductInCart([FromRoute] int id)
+    public async Task<IActionResult> DeleteProductInCart([FromRoute] int id,[FromQuery] int priceId)
     {
-        if (id < 0)
-            return BadRequest("Id продукта должно быть положительным");
         int userId = (int)HttpContext.Items["Id"]!;
-        await _productsService.DeleteProductInCart(userId, id);
-        return Accepted();
+        try
+        {
+            await _productsService.DeleteProductInCart(userId, id, priceId);
+            return Accepted();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

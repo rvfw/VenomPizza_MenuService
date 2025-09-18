@@ -7,8 +7,8 @@ namespace VenomPizzaMenuService.src.model;
 public class PriceVariant
 {
     [Key]
-    [Column("id")]
-    public int Id { get; set; }
+    [Column("price_id")]
+    public int PriceId { get; set; }
     [Column("product_id")]
     public int ProductId { get; set; }
     [JsonIgnore]
@@ -18,8 +18,9 @@ public class PriceVariant
     [Column("price")]
     public decimal Price { get; set; }
     public PriceVariant() { }
-    public PriceVariant(Product product, string size,decimal price)
+    public PriceVariant(Product product,int id, string size,decimal price)
     {
+        PriceId=id;
         Product=product;
         Size = size;
         Price = price;

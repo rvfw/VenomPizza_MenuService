@@ -18,6 +18,8 @@ public class Product
     public decimal Price { get; set; }
     [Column("is_available")]
     public bool IsAvailable { get; set; }
+    [Column("unit")]
+    public string? Unit { get; set; }
     [Column("categories")]
     public List<string> Categories { get; set; } = new List<string>();
     public List<PriceVariant> PriceVariants { get; set; } = new List<PriceVariant>();
@@ -30,7 +32,7 @@ public class Product
     {
         ImageUrl=dto.ImageUrl;
         Description=dto.Description;
-        Price=dto.Price;
+        Unit=dto.Unit;
         IsAvailable=dto.IsAvailable;
         Categories=dto.Categories;
     }

@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using VenomPizzaMenuService.src.model;
 
@@ -20,9 +22,16 @@ public class ProductDto
     [Length(0,500, ErrorMessage = "Описание продукта не может быть больше 500 символов")]
     public string? Description { get; set; }
     [Range(0,int.MaxValue,ErrorMessage ="Цена не может быть меньше 1 рубля")]
-    public decimal Price { get; set; }
     public bool IsAvailable { get; set; } = true;
+    public string? Unit { get; set; }
     public List<string> Categories { get; set; } = new List<string>();
+    public string PriceVariants { get; set; }
+    [NotMapped]
+    public Dictionary<string, decimal> PriceVariantsDict
+    {
+        get => JsonSerializer.Deserialize<Dictionary<string, decimal>>(PriceVariants ?? "{}") ?? [];
+        set => PriceVariants = JsonSerializer.Serialize(value);
+    }
     public ProductDto(int id,string title)
     {
         Id = id;

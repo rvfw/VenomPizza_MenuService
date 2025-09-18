@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using VenomPizzaMenuService.src.context;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.model;
@@ -16,34 +18,49 @@ namespace VenomPizzaMenuService.src.repository
         #region create
         public async Task<Product> AddProduct(ProductDto newProduct)
         {
-            var addedProduct = await AddProductToDatabase(newProduct);
-            dbContext.PriceVariants.Add(new PriceVariant(addedProduct,"Default",addedProduct.Price));
-            await dbContext.SaveChangesAsync();
-            return addedProduct;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var addedProduct = await AddProductToDatabase(newProduct);
+                var priceVariants = newProduct.PriceVariantsDict.Select((x, y) => new PriceVariant(addedProduct, y, x.Key, x.Value));
+                dbContext.PriceVariants.AddRange(priceVariants);
+                await dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return addedProduct;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
-        public async Task<Product> AddProduct(DishDto newDish)
-        {
-            var addedProduct = (Dish)await AddProductToDatabase(newDish);
 
-            var priceVariants = newDish.PriceVariantsDict.Select(x => new PriceVariant(addedProduct, x.Key, x.Value));
-            dbContext.PriceVariants.AddRange(priceVariants);
-            await dbContext.SaveChangesAsync();
-            
-            return addedProduct;
-        }
         public async Task<Product> AddProduct(ComboDto newCombo)
         {
-            var addedCombo = await AddProductToDatabase(newCombo);
+            await using var transaction=await dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var idList = newCombo.ProductsDict.Keys.ToList();
+                var foundedProducts = await dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
+                foreach (var searchedProduct in newCombo.ProductsDict)
+                    if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
+                        throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
 
-            var idList = newCombo.ProductsDict.Keys.ToList();
-            var foundedProducts = await dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
-            foreach (var searchedProduct in newCombo.ProductsDict)
-                if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
-                    throw new ArgumentException("Товара с ID " + searchedProduct.Key + " не существует");
+                var addedCombo = await AddProductToDatabase(newCombo);
+                dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x => new ComboProduct(addedCombo.Id, x.Key, x.Value)));
 
-            dbContext.ComboProducts.AddRange(newCombo.ProductsDict.Select(x => new ComboProduct(addedCombo.Id, x.Key, x.Value)));
-            await dbContext.SaveChangesAsync();
-            return addedCombo;
+                var priceVariants = newCombo.PriceVariantsDict.Select((x, y) => new PriceVariant(addedCombo, y, x.Key, x.Value));
+                dbContext.PriceVariants.AddRange(priceVariants);
+
+                await dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return addedCombo;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
         #endregion
 
@@ -58,7 +75,7 @@ namespace VenomPizzaMenuService.src.repository
                 .Select(p => new ProductShortInfoDto(p))
                 .ToListAsync();
             if (foundedProducts.Count() == 0)
-                throw new KeyNotFoundException("Страницы " + page + " не существует");
+                throw new KeyNotFoundException("Страницы " + (page+1) + " не существует");
             return foundedProducts;
         }
 
@@ -75,30 +92,48 @@ namespace VenomPizzaMenuService.src.repository
             return foundedProduct;
         }
 
-        public async Task<(int Id,string Title)?> GetProductIdAndTitle(int productId)
+        public async Task<(int id,string title)> GetProductIdAndTitle(int productId,int priceId)
         {
             var foundedProduct=await dbContext.Products
-                .Select(p=>new {p.Id,p.Title})
                 .FirstOrDefaultAsync(x=>x.Id== productId);
             if (foundedProduct == null)
-                return null;
-            return (foundedProduct.Id,foundedProduct.Title);
+                throw new KeyNotFoundException($"Товар с Id {productId} не найден");
+            if (foundedProduct.PriceVariants.FirstOrDefault(x => x.PriceId == priceId) == null)
+                throw new KeyNotFoundException($"Цена размера номер {priceId} товара {productId} не найдена");
+            return (foundedProduct.Id, foundedProduct.Title);
         }
         #endregion
 
         #region update
         public async Task<Product> UpdateProductInfo(ProductDto updatedProduct)
         {
-            var foundedProduct = await GetProductById(updatedProduct.Id);
-            if (foundedProduct == null)
-                throw new KeyNotFoundException("Товара с ID " + updatedProduct.Id + " не найдено");
-            dbContext.Entry(foundedProduct).CurrentValues.SetValues(updatedProduct);
-            if (foundedProduct is Dish foundedDish && updatedProduct is DishDto updatedDish)
-                UpdateDish(foundedDish, updatedDish);
-            else if (foundedProduct is Combo foundedCombo && updatedProduct is ComboDto updatedCombo)
-                UpdateCombo(foundedCombo, updatedCombo);
-            await dbContext.SaveChangesAsync();
-            return foundedProduct;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var foundedProduct = await GetProductById(updatedProduct.Id);
+                if (foundedProduct == null)
+                    throw new KeyNotFoundException("Товара с ID " + updatedProduct.Id + " не найдено");
+
+                dbContext.Entry(foundedProduct).CurrentValues.SetValues(updatedProduct);
+                dbContext.PriceVariants.RemoveRange(foundedProduct.PriceVariants);
+
+                var priceVariants = updatedProduct.PriceVariantsDict.Select((x, y) => new PriceVariant(foundedProduct, y, x.Key, x.Value));
+                dbContext.PriceVariants.AddRange(priceVariants);
+
+                if (foundedProduct is Dish foundedDish && updatedProduct is DishDto updatedDish)
+                    UpdateDish(foundedDish, updatedDish);
+                else if (foundedProduct is Combo foundedCombo && updatedProduct is ComboDto updatedCombo)
+                    UpdateCombo(foundedCombo, updatedCombo);
+
+                await dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return foundedProduct;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
         #endregion
 
@@ -112,10 +147,6 @@ namespace VenomPizzaMenuService.src.repository
         #endregion
 
         #region private
-        private void DeleteComboProducts(Combo combo)
-        {
-            dbContext.ComboProducts.RemoveRange(combo.Products);
-        }
         private void UpdateDish(Dish subject, DishDto dto)
         {
             subject.Proteins = dto.Proteins;
@@ -125,13 +156,12 @@ namespace VenomPizzaMenuService.src.repository
             subject.Ingredients = dto.Ingredients;
             subject.Allergens = dto.Allergens;
         }
-        private void UpdateCombo(Combo subject, ComboDto dto)
+        private async Task UpdateCombo(Combo subject, ComboDto dto)
         {
-            if (dto.Products != null)
-            {
-                DeleteComboProducts(subject);
-                dbContext.ComboProducts.AddRange(dto.ProductsDict.Select(x=> new ComboProduct(subject.Id, x.Key, x.Value)));
-            }
+            if (dto.Products == null)
+                return;
+            dbContext.ComboProducts.RemoveRange(subject.Products);
+            dbContext.ComboProducts.AddRange(dto.ProductsDict.Select(x => new ComboProduct(subject.Id, x.Key, x.Value)));
         }
         private async Task<Product> AddProductToDatabase(ProductDto newProduct)
         {
