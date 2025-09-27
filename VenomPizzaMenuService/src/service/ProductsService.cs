@@ -71,10 +71,13 @@ public class ProductsService:IProductsService
     {
         newProduct.Validate();
         Product result;
-        if (newProduct is ComboDto)
-            result = await _productsRepository.AddProduct((ComboDto)newProduct);
-        else if (newProduct is DishDto)
-            result = await _productsRepository.AddProduct((DishDto)newProduct);
+        if (newProduct is ComboDto newCombo)
+        {
+            await _productsRepository.CheckComboProducts(newCombo);
+            result = await _productsRepository.AddProduct(newCombo);
+        }
+        else if (newProduct is DishDto newDish)
+            result = await _productsRepository.AddProduct(newDish);
         else
             result = await _productsRepository.AddProduct(newProduct);
         await SendInProductUpdatedTopic("product_added", new ProductShortInfoDto(result));
@@ -93,9 +96,13 @@ public class ProductsService:IProductsService
     public async Task DeleteProductById(int id)
     {
         var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,0);
-        await _productsRepository.DeleteProductById(id);
-        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.id, foundedProduct.title));
-        await _cacheProvider.RemoveAsync<Product>(foundedProduct.id.ToString());
+        if (foundedProduct == null)
+            throw new KeyNotFoundException($"Продукт с Id {id} не найден");
+        var result=await _productsRepository.DeleteProductById(id);
+        if (!result)
+            throw new KeyNotFoundException($"Продукт с Id {id} не найден");
+        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.Value.id, foundedProduct.Value.title));
+        await _cacheProvider.RemoveAsync<Product>(foundedProduct.Value.id.ToString());
     }
     #endregion
 
@@ -118,17 +125,17 @@ public class ProductsService:IProductsService
         if (foundedProduct == null)
             throw new KeyNotFoundException($"Продукта в Id {id} не найдено");
         if (foundedProduct.PriceVariants.FirstOrDefault(x => x.PriceId == priceId) == null)
-            throw new KeyNotFoundException($"Цена размера c Id {priceId} для продукта {id} не найдена");
+            throw new KeyNotFoundException($"Цена {priceId} для продукта {id} не найдена");
         await SendInCartUpdatedTopic("product_updated", cartId, id, priceId, quantity);
     }
 
-    public async Task DeleteProductInCart(int cartId, int id,int priceId)
+    public async Task DeleteProductInCart(int cartId, int id, int priceId)
     {
-        var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,priceId);
-        await SendInCartUpdatedTopic("product_deleted", cartId, id,priceId);
-    } 
+        if (_productsRepository.GetProductIdAndTitle(id, priceId) == null)
+            throw new KeyNotFoundException($"Продукт {id} с ценой {priceId} не найден");
+        await SendInCartUpdatedTopic("product_deleted", cartId, id, priceId);
+    }
     #endregion
-
 
     #region private
     private async Task SendInCartUpdatedTopic(string eventType, int cartId, int id,int priceId, int quantity = 1)

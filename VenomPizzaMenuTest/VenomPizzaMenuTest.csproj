@@ -9,6 +9,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="tests\controllerTest\**" />
+    <Compile Remove="tests\serviceTest\**" />
+    <EmbeddedResource Remove="tests\controllerTest\**" />
+    <EmbeddedResource Remove="tests\serviceTest\**" />
+    <None Remove="tests\controllerTest\**" />
+    <None Remove="tests\serviceTest\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
@@ -22,11 +31,6 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="tests\controllerTest\" />
-    <Folder Include="tests\serviceTest\" />
   </ItemGroup>
 
   <ItemGroup>
