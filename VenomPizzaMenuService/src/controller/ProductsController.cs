@@ -8,8 +8,8 @@ namespace VenomPizzaMenuService.src.controller;
 [Route("api/products")]
 public class ProductsController : Controller
 {
-    private readonly ProductsService _productsService;
-    public ProductsController(ProductsService productsService)
+    private readonly IProductsService _productsService;
+    public ProductsController(IProductsService productsService)
     {
         this._productsService = productsService;
     }
@@ -42,9 +42,18 @@ public class ProductsController : Controller
         {
             return NotFound(ex.Message);
         }
-        catch (Exception ex)
+    }
+
+    [HttpGet("category/{categoryName}")]
+    public async Task<IActionResult> GetProductsByCategory([FromRoute] string categoryName)
+    {
+        try
         {
-            return BadRequest(ex.Message);
+            return Ok(await _productsService.GetProductsByCategory(categoryName));
+        }
+        catch(KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
         }
     }
 

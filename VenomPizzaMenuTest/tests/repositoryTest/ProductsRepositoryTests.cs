@@ -153,11 +153,6 @@ public class ProductsRepositoryTests
             Assert.That(result[i].Title, Is.EqualTo(products[i].Title));
         }
     }
-    [Test]
-    public void GetProductsPage_WrongPage()
-    {
-        Assert.ThrowsAsync<KeyNotFoundException>(async () => await _productsRepository.GetProductsPage(1, 1), "Страницы 1 не существует");
-    }
     #endregion
 
     #region update

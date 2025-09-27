@@ -20,8 +20,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     var config = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis"));
     return ConnectionMultiplexer.Connect(config);
 });
-builder.Services.AddScoped<ProductsService>();
-builder.Services.AddScoped<ProductsRepository>();
+builder.Services.AddScoped<IProductsService,ProductsService>();
+builder.Services.AddScoped<IProductsRepository,ProductsRepository>();
 builder.Services.AddScoped<ICacheProvider, CacheProvider>();
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));

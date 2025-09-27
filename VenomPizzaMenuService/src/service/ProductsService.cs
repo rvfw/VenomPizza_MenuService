@@ -12,15 +12,17 @@ namespace VenomPizzaMenuService.src.service;
 
 public class ProductsService:IProductsService
 {
-    private readonly ProductsRepository _productsRepository;
+    private readonly IProductsRepository _productsRepository;
     private readonly IProducer<string, string> _producer;
     private readonly KafkaSettings _kafkaSettings;
     private readonly ILogger<IProductsService> _logger;
     private readonly ICacheProvider _cacheProvider;
+
     private readonly TimeSpan productExpiration=TimeSpan.FromHours(6);
+    private readonly TimeSpan categoryExpiration = TimeSpan.FromHours(1);
     private readonly TimeSpan pageExpiration = TimeSpan.FromMinutes(15);
 
-    public ProductsService(ProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger, ICacheProvider cacheProvider)
+    public ProductsService(IProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger, ICacheProvider cacheProvider)
     {
         _productsRepository = productsRepository;
         _kafkaSettings = settings.Value;
@@ -31,22 +33,37 @@ public class ProductsService:IProductsService
 
     public async Task<Product> GetProductById(int id)
     {
-        var cachedProduct=await _cacheProvider.GetAsync<Product>(id.ToString());
+        var cachedProduct=await _cacheProvider.GetAsync<Product>($"product:{id}");
         if (cachedProduct != null)
             return cachedProduct;
         var foundedProduct=await _productsRepository.GetProductById(id);
-        await _cacheProvider.SetAsync<Product>(id.ToString(), foundedProduct,productExpiration);
+        await _cacheProvider.SetAsync<Product>($"product:{id}", foundedProduct,productExpiration);
         return foundedProduct;
     }
 
     public async Task<List<ProductShortInfoDto>> GetProductsPage(int page, int size)
     {
-        var cachedPage =await _cacheProvider.GetAsync<List<ProductShortInfoDto>>($"{page}:size:{size}");
+        var cachedPage =await _cacheProvider.GetAsync<List<ProductShortInfoDto>>($"products:page:{page}:size:{size}");
         if (cachedPage != null)
             return cachedPage;
-        List<ProductShortInfoDto> foundedPage = await _productsRepository.GetProductsPage(page, size);
-        await _cacheProvider.SetAsync($"{page}:size:{size}", foundedPage, pageExpiration);
+        var foundedPage = await _productsRepository.GetProductsPage(page, size);
+        if (foundedPage == null || foundedPage.Count == 0)
+            throw new KeyNotFoundException($"Страница {page} размером {size} не найдена");
+        await _cacheProvider.SetAsync($"products:page:{page}:size:{size}", foundedPage, pageExpiration);
         return foundedPage;
+    }
+
+    public async Task<List<ProductShortInfoDto>> GetProductsByCategory(string categoryName)
+    {
+        string key = $"products:category:{categoryName}";
+        var cachedCategory = await _cacheProvider.GetAsync<List<ProductShortInfoDto>>(key);
+        if (cachedCategory != null)
+            return cachedCategory;
+        var foundedProducts=await _productsRepository.GetProductsByCategory(categoryName);
+        if (foundedProducts == null || foundedProducts.Count == 0)
+            throw new KeyNotFoundException($"Категория {categoryName} не найдена");
+        await _cacheProvider.SetAsync<List<ProductShortInfoDto>>(key, foundedProducts,categoryExpiration);
+        return foundedProducts;
     }
 
     #region productUpdate

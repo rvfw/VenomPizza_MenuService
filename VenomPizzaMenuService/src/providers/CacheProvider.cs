@@ -1,7 +1,5 @@
 ﻿using StackExchange.Redis;
 using System.Text.Json;
-using VenomPizzaMenuService.src.dto;
-using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.cache;
 
@@ -9,11 +7,6 @@ public class CacheProvider : ICacheProvider
 {
     private readonly IDatabase _database;
     private readonly ILogger<CacheProvider> _logger;
-    private static readonly Dictionary<Type, string> _keyPrefix = new()
-    {
-        [typeof(Product)]="product",
-        [typeof(List<ProductShortInfoDto>)]="products:page"
-    };
 
     public CacheProvider(IConnectionMultiplexer redis, ILogger<CacheProvider> logger)
     {
@@ -24,7 +17,6 @@ public class CacheProvider : ICacheProvider
     {
         try
         {
-            var fullKey = GetKey(typeof(T), key);
             var foundedValue = await _database.StringGetAsync(key);
             if (foundedValue.IsNullOrEmpty)
                 return default;
@@ -42,7 +34,7 @@ public class CacheProvider : ICacheProvider
     {
         try
         {
-            var keys = ids.Select(x =>(RedisKey)GetKey(typeof(T), x.ToString())).ToArray();
+            var keys = ids.Select(x =>(RedisKey)x.ToString()).ToArray();
             var values = await _database.StringGetAsync(keys);
             var result= new Dictionary<string,T>();
             for(int i=0; i<keys.Length; i++)
@@ -61,24 +53,23 @@ public class CacheProvider : ICacheProvider
     {
         try
         {
-            var fullKey = GetKey(typeof(T), key);
             var json = JsonSerializer.Serialize(value);
             await _database.StringSetAsync(key, json, expiration);
-            _logger.LogInformation($"Установлено значение в редисе для {fullKey}");
+            _logger.LogInformation($"Установлено значение в редисе для {key}");
         }
         catch (Exception ex)
         {
             _logger.LogWarning($"Не удалось записать в редис значение с ключом {key}: {ex.Message}");
         }
     }
+
     public async Task<bool> RemoveAsync<T>(string key)
     {
         try
         {
-            var fullKey = GetKey(typeof(T), key);
             var res = await _database.KeyDeleteAsync(key);
             if (res)
-                _logger.LogInformation($"Удалено значение в редисе: {fullKey}");
+                _logger.LogInformation($"Удалено значение в редисе: {key}");
             return res;
         }
         catch (Exception ex)
@@ -86,11 +77,5 @@ public class CacheProvider : ICacheProvider
             _logger.LogError($"Не удалось удалить в редисе значение для ключа {key}: {ex.Message}");
             return false;
         }
-    }
-    private string GetKey(Type type,string key)
-    {
-        if (!_keyPrefix.TryGetValue(type, out var prefix))
-            throw new KeyNotFoundException($"Не найден префикс для редиса для типа {type}");
-        return $"{prefix}:{key}";
     }
 }
