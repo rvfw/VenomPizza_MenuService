@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using VenomPizzaMenuService.src.context;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.model;
@@ -18,6 +19,7 @@ public class ProductsRepositoryTests
     {
         _contextOptions = new DbContextOptionsBuilder<ProductsDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(warnings=>warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         _context=new ProductsDbContext(_contextOptions);
         _productsRepository = new ProductsRepository(_context);

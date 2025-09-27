@@ -10,6 +10,7 @@ public class ProductShortInfoDto
     public bool IsAvailable { get; set;}
     public string? Unit { get; set;}
     public List<PriceVariantDto> Prices { get; set;}
+    public ProductShortInfoDto() { }
     public ProductShortInfoDto(Product p)
     {
         Id=p.Id; 

@@ -1,6 +1,8 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 using System.Text.Json;
+using VenomPizzaMenuService.src.cache;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.kafka;
 using VenomPizzaMenuService.src.model;
@@ -14,23 +16,37 @@ public class ProductsService:IProductsService
     private readonly IProducer<string, string> _producer;
     private readonly KafkaSettings _kafkaSettings;
     private readonly ILogger<IProductsService> _logger;
+    private readonly ICacheProvider _cacheProvider;
+    private readonly TimeSpan productExpiration=TimeSpan.FromHours(6);
+    private readonly TimeSpan pageExpiration = TimeSpan.FromMinutes(15);
 
-    public ProductsService(ProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger)
+    public ProductsService(ProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger, ICacheProvider cacheProvider)
     {
-        this._productsRepository = productsRepository;
+        _productsRepository = productsRepository;
         _kafkaSettings = settings.Value;
         _producer = producer;
         _logger = logger;
+        _cacheProvider = cacheProvider;
     }
 
     public async Task<Product> GetProductById(int id)
     {
-        return await _productsRepository.GetProductById(id);
+        var cachedProduct=await _cacheProvider.GetAsync<Product>(id.ToString());
+        if (cachedProduct != null)
+            return cachedProduct;
+        var foundedProduct=await _productsRepository.GetProductById(id);
+        await _cacheProvider.SetAsync<Product>(id.ToString(), foundedProduct,productExpiration);
+        return foundedProduct;
     }
 
     public async Task<List<ProductShortInfoDto>> GetProductsPage(int page, int size)
     {
-        return await _productsRepository.GetProductsPage(page, size);
+        var cachedPage =await _cacheProvider.GetAsync<List<ProductShortInfoDto>>($"{page}:size:{size}");
+        if (cachedPage != null)
+            return cachedPage;
+        List<ProductShortInfoDto> foundedPage = await _productsRepository.GetProductsPage(page, size);
+        await _cacheProvider.SetAsync($"{page}:size:{size}", foundedPage, pageExpiration);
+        return foundedPage;
     }
 
     #region productUpdate
@@ -53,6 +69,7 @@ public class ProductsService:IProductsService
         updatedProduct.Validate();
         var result = await _productsRepository.UpdateProductInfo(updatedProduct);
         await SendInProductUpdatedTopic("product_updated", new ProductShortInfoDto(result));
+        await _cacheProvider.RemoveAsync<Product>(result.Id.ToString());
         return result;
     }
 
@@ -61,6 +78,7 @@ public class ProductsService:IProductsService
         var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,0);
         await _productsRepository.DeleteProductById(id);
         await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.id, foundedProduct.title));
+        await _cacheProvider.RemoveAsync<Product>(foundedProduct.id.ToString());
     }
     #endregion
 

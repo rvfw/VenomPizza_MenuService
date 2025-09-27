@@ -2,6 +2,8 @@ using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
+using VenomPizzaMenuService.src.cache;
 using VenomPizzaMenuService.src.context;
 using VenomPizzaMenuService.src.kafka;
 using VenomPizzaMenuService.src.repository;
@@ -13,8 +15,14 @@ builder.Services.AddDbContext<ProductsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var config = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis"));
+    return ConnectionMultiplexer.Connect(config);
+});
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<ProductsRepository>();
+builder.Services.AddScoped<ICacheProvider, CacheProvider>();
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 builder.Services.AddSingleton(provider =>

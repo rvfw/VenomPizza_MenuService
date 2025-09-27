@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using VenomPizzaMenuService.src.dto;
+using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuTest.tests.dtoTest;
 
@@ -47,12 +48,6 @@ public class ValidateDtoTests
     public void ProductDto_WrongId()
     {
         var dto = new ProductDto(-1, validTitles[0]);
-        Assert.Throws<ValidationException>(dto.Validate);
-    }
-    [Test]
-    public void ProductDto_WrongPrice()
-    {
-        var dto = new ProductDto(-1, validTitles[0]) { Price=-0.1M};
         Assert.Throws<ValidationException>(dto.Validate);
     }
     [Test]

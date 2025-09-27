@@ -14,8 +14,6 @@ public class Product
     public string? ImageUrl { get; set; }
     [Column("description")]
     public string? Description { get; set; }
-    [Column("price")]
-    public decimal Price { get; set; }
     [Column("is_available")]
     public bool IsAvailable { get; set; }
     [Column("unit")]
@@ -23,7 +21,7 @@ public class Product
     [Column("categories")]
     public List<string> Categories { get; set; } = new List<string>();
     public List<PriceVariant> PriceVariants { get; set; } = new List<PriceVariant>();
-    protected Product() { }
+    public Product() { }
     public Product(int id,string title) {
         Id= id;
         Title= title;

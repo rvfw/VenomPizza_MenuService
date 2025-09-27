@@ -45,6 +45,9 @@ public class ProductDto
     {
         var results=new List<ValidationResult>();
         var context=new ValidationContext(this);
+        foreach (var t in PriceVariantsDict.Values)
+            if (t < 0)
+                results.Add(new ValidationResult("Цена должна быть положительной"));
         if (!Validator.TryValidateObject(this, context, results,true))
         {
             var errors=string.Join(", ",results.Select(x => x.ErrorMessage));
