@@ -99,17 +99,24 @@ public class ProductsRepository : IProductsRepository
         return (foundedProduct.Id, foundedProduct.Title);
     }
 
-    public async Task CheckComboProducts(ComboDto newCombo) //TODO split
+    public async Task<bool> AllComboProductsExist(ComboDto newCombo)
     {
         var idList = newCombo.ProductsDict.Keys.ToList();
         var foundedProducts = await _dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
         foreach (var searchedProduct in newCombo.ProductsDict)
-        {
             if (!foundedProducts.Any(x => x.Id == searchedProduct.Key))
-                throw new KeyNotFoundException($"Товара с ID {searchedProduct.Key} не существует");
-            if (foundedProducts.First(x => x.Id == searchedProduct.Key) is Combo)
-                throw new ArgumentException($"Нельзя добавить комбо с ID {searchedProduct.Key} в новое комбо");
-        }
+                return false;
+        return true;
+    }
+
+    public async Task<bool> ComboContainsCombo(ComboDto newCombo)
+    {
+        var idList = newCombo.ProductsDict.Keys.ToList();
+        var foundedProducts = await _dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
+        foreach (var product in foundedProducts)
+            if (product is Combo)
+                return true;
+        return false;
     }
     #endregion
 

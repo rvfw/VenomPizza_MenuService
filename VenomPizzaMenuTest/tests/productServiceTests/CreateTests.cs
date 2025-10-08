@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Reflection.Metadata.Ecma335;
 using VenomPizzaMenuService.src.cache;
 using VenomPizzaMenuService.src.dto;
 using VenomPizzaMenuService.src.kafka;
@@ -15,14 +14,15 @@ namespace VenomPizzaMenuTest.tests.productServiceTests;
 [TestFixture]
 internal class CreateTests
 {
-    private readonly Mock<IProductsRepository> _mockProductsRepository;
-    private readonly Mock<ICacheProvider> _mockCacheProvider;
-    private readonly Mock<IProducer<string, string>> _mockProducer;
-    private readonly KafkaSettings _kafkaSettings;
-    private readonly Mock<ILogger<ProductsService>> _mockLogger;
-    private readonly IProductsService _productsService;
+    private Mock<IProductsRepository> _mockProductsRepository;
+    private Mock<ICacheProvider> _mockCacheProvider;
+    private Mock<IProducer<string, string>> _mockProducer;
+    private KafkaSettings _kafkaSettings;
+    private Mock<ILogger<ProductsService>> _mockLogger;
+    private IProductsService _productsService;
 
-    public CreateTests()
+    [SetUp]
+    public void Setup()
     {
         _mockProductsRepository = new Mock<IProductsRepository>();
         _mockCacheProvider = new Mock<ICacheProvider>();
@@ -85,24 +85,56 @@ internal class CreateTests
     [Test]
     public async Task AddCombo_Success()
     {
-        var ComboDto = new ComboDto(1, "Combo") { ProductsDict = new() { [2]=5 } };
+        var comboDto = new ComboDto(1, "Combo") { ProductsDict = new() { [2]=5 } };
         _mockProductsRepository.Setup(repository => repository.GetProductById(1))
             .ReturnsAsync(() => null);
-        _mockProductsRepository.Setup(repository => repository.AddProduct(ComboDto))
-            .ReturnsAsync(new Combo(ComboDto));
+        _mockProductsRepository.Setup(repository => repository.AddProduct(comboDto))
+            .ReturnsAsync(new Combo(comboDto));
+        _mockProductsRepository.Setup(repository => repository.AllComboProductsExist(comboDto))
+            .ReturnsAsync(true);
+        _mockProductsRepository.Setup(repository => repository.ComboContainsCombo(comboDto))
+            .ReturnsAsync(false);
         _mockProducer.Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DeliveryResult<string, string>());
 
-        var result = await _productsService.AddProduct(ComboDto);
+        var result = await _productsService.AddProduct(comboDto);
 
         Assert.That(result.GetType(), Is.EqualTo(typeof(Combo)));
-        Assert.That(result.Id, Is.EqualTo(ComboDto.Id));
-        Assert.That(result.Title, Is.EqualTo(ComboDto.Title));
+        Assert.That(result.Id, Is.EqualTo(comboDto.Id));
+        Assert.That(result.Title, Is.EqualTo(comboDto.Title));
         _mockProductsRepository.Verify(repository => repository.GetProductById(1), Times.Once);
-        _mockProductsRepository.Verify(repository => repository.GetProductById(1), Times.Once);
-        _mockProductsRepository.Verify(repository => repository.AddProduct(ComboDto), Times.Once);
-        _mockProductsRepository.Verify(repository => repository.CheckComboProducts(ComboDto), Times.Once);
+        _mockProductsRepository.Verify(repository => repository.AddProduct(comboDto), Times.Once);
+        _mockProductsRepository.Verify(repository => repository.AllComboProductsExist(comboDto), Times.Once);
+        _mockProductsRepository.Verify(repository => repository.ComboContainsCombo(comboDto), Times.Once);
         _mockProducer.Verify(producer => producer.ProduceAsync(_kafkaSettings.Topics.ProductUpdated, It.IsAny<Message<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public void AddCombo_ProductNotFound()
+    {
+        var comboDto = new ComboDto(1, "Combo") { ProductsDict = new() { [2] = 5 } };
+        _mockProductsRepository.Setup(repository => repository.GetProductById(1))
+            .ReturnsAsync(() => null);
+        _mockProductsRepository.Setup(repository => repository.AddProduct(comboDto))
+            .ReturnsAsync(new Combo(comboDto));
+        _mockProductsRepository.Setup(repository => repository.AllComboProductsExist(comboDto))
+            .ReturnsAsync(false);
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await _productsService.AddProduct(comboDto));
+    }
+
+    [Test]
+    public void AddCombo_ComboInCombo()
+    {
+        var comboDto = new ComboDto(1, "Combo") { ProductsDict = new() { [2] = 5 } };
+        _mockProductsRepository.Setup(repository => repository.GetProductById(1))
+            .ReturnsAsync(() => null);
+        _mockProductsRepository.Setup(repository => repository.AddProduct(comboDto))
+            .ReturnsAsync(new Combo(comboDto));
+        _mockProductsRepository.Setup(repository => repository.ComboContainsCombo(comboDto))
+            .ReturnsAsync(true);
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await _productsService.AddProduct(comboDto));
     }
 
     [Test]

@@ -206,17 +206,21 @@ internal class ReadTests
         await _context.SaveChangesAsync();
         var combo = new ComboDto(1, "Combo") { ProductsDict = new() { [1] = 1 } };
 
-        await _productsRepository.CheckComboProducts(combo);
+        var allComboProductsExist = await _productsRepository.AllComboProductsExist(combo);
+        var comboInCombo=await _productsRepository.ComboContainsCombo(combo);
 
-        Assert.Pass();
+        Assert.That(allComboProductsExist, Is.True);
+        Assert.That(comboInCombo, Is.False);
     }
 
     [Test]
-    public void CheckComboProducts_ProductNotFound()
+    public async Task CheckComboProducts_ProductNotFound()
     {
         var combo = new ComboDto(1, "Combo") { ProductsDict = new() { [1] = 1 } };
 
-        Assert.ThrowsAsync<KeyNotFoundException>(async()=>await _productsRepository.CheckComboProducts(combo), "Товара с ID 1 не существует");
+        var allComboProductsExist= await _productsRepository.AllComboProductsExist(combo);
+
+        Assert.That(allComboProductsExist, Is.False);
     }
 
     [Test]
@@ -227,6 +231,8 @@ internal class ReadTests
         await _context.SaveChangesAsync();
         var combo = new ComboDto(2, "Combo") { ProductsDict = new() { [1] = 1 } };
 
-        Assert.ThrowsAsync<ArgumentException>(async () => await _productsRepository.CheckComboProducts(combo), "Нельзя добавить комбо с ID 1 в новое комбо");
+        var comboInCombo = await _productsRepository.ComboContainsCombo(combo);
+
+        Assert.That(comboInCombo, Is.True);
     }
 }

@@ -11,7 +11,4 @@ public interface IProductsService
     Task<List<ProductShortInfoDto>> GetProductsByCategory(string categoryName);
     Task<Product> UpdateProductInfo(ProductDto updatedProduct);
     Task DeleteProductById(int id);
-    Task AddProductToCart(int cartId, int id, int priceId, int quantity);
-    Task UpdateProductQuantityInCart(int cartId, int id, int priceId, int quantity);
-    Task DeleteProductInCart(int cartId, int id, int priceId);
 }

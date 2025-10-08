@@ -13,5 +13,6 @@ public interface IProductsRepository
     Task<(int id, string title)?> GetProductIdAndTitle(int productId, int priceId);
     Task<Product> UpdateProductInfo(ProductDto updatedProduct);
     Task<bool> DeleteProductById(int id);
-    Task CheckComboProducts(ComboDto newCombo);
+    Task<bool> AllComboProductsExist(ComboDto newCombo);
+    Task<bool> ComboContainsCombo(ComboDto newCombo);
 }
