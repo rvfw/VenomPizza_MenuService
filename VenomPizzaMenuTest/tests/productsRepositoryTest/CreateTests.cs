@@ -76,17 +76,6 @@ internal class CreateTests
     }
 
     [Test]
-    public async Task AddProduct_AlreadyExists()
-    {
-        ProductDto product = new(1, "Product");
-        _context.Products.Add(product.ToProduct());
-        await _context.SaveChangesAsync();
-
-        Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _productsRepository.AddProduct(product), "Товар с ID 1 уже существует");
-    }
-
-    [Test]
     public async Task AddProduct_AddPrices_Success()
     {
         ProductDto product = new ProductDto(1, "Product") { PriceVariantsDict = new() { ["10"] = 100 } };

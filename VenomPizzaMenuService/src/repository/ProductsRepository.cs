@@ -99,7 +99,7 @@ public class ProductsRepository : IProductsRepository
         return (foundedProduct.Id, foundedProduct.Title);
     }
 
-    public async Task CheckComboProducts(ComboDto newCombo)
+    public async Task CheckComboProducts(ComboDto newCombo) //TODO split
     {
         var idList = newCombo.ProductsDict.Keys.ToList();
         var foundedProducts = await _dbContext.Products.Where(x => idList.Contains(x.Id)).ToListAsync();
@@ -183,8 +183,6 @@ public class ProductsRepository : IProductsRepository
 
     private async Task<Product> AddProductToDatabase(ProductDto newProduct)
     {
-        if (await _dbContext.Products.AnyAsync(x => x.Id == newProduct.Id))
-            throw new ArgumentException("Товар с ID " + newProduct.Id + " уже существует");
         var addedProduct = _dbContext.Products.Add(newProduct.ToProduct()).Entity;
         await _dbContext.SaveChangesAsync();
 

@@ -1,6 +1,5 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
-using System.Collections.Generic;
 using System.Text.Json;
 using VenomPizzaMenuService.src.cache;
 using VenomPizzaMenuService.src.dto;
@@ -21,7 +20,7 @@ public class ProductsService:IProductsService
     private readonly TimeSpan productExpiration=TimeSpan.FromHours(6);
     private readonly TimeSpan categoryExpiration = TimeSpan.FromHours(1);
     private readonly TimeSpan pageExpiration = TimeSpan.FromMinutes(15);
-
+    //TODO split to product and cart service
     public ProductsService(IProductsRepository productsRepository,IProducer<string,string> producer,IOptions<KafkaSettings> settings, ILogger<IProductsService> logger, ICacheProvider cacheProvider)
     {
         _productsRepository = productsRepository;
@@ -70,6 +69,8 @@ public class ProductsService:IProductsService
     public async Task<Product> AddProduct(ProductDto newProduct)
     {
         newProduct.Validate();
+        if (await _productsRepository.GetProductById(newProduct.Id) != null)
+            throw new ArgumentException($"Товар с Id {newProduct.Id} уже существует");
         Product result;
         if (newProduct is ComboDto newCombo)
         {
