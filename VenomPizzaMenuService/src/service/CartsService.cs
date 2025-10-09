@@ -25,11 +25,11 @@ public class CartsService:ICartsService
     {
         var foundedProduct = await _productsRepository.GetProductById(id);
         if (foundedProduct == null)
-            throw new KeyNotFoundException($"Продукта c Id {id} не найдено");
+            throw new KeyNotFoundException($"Продукт c Id {id} не найден");
         if (foundedProduct.PriceVariants.FirstOrDefault(x => x.PriceId == priceId) == null)
             throw new KeyNotFoundException($"Цена размера с Id {priceId} для продукта {id} не найдена");
         if (!foundedProduct.IsAvailable)
-            throw new BadHttpRequestException($"Продукт {foundedProduct.Title} с Id {foundedProduct.Id} не доступен для заказа на данный момент");
+            throw new ArgumentException($"Продукт {foundedProduct.Title} с Id {foundedProduct.Id} не доступен для заказа на данный момент");
         await SendInCartUpdatedTopic("product_added", cartId, id, priceId, quantity);
     }
 
@@ -45,7 +45,7 @@ public class CartsService:ICartsService
 
     public async Task DeleteProductInCart(int cartId, int id, int priceId)
     {
-        if (_productsRepository.GetProductIdAndTitle(id, priceId) == null)
+        if (await _productsRepository.GetProductIdAndTitle(id, priceId) == null)
             throw new KeyNotFoundException($"Продукт {id} с ценой {priceId} не найден");
         await SendInCartUpdatedTopic("product_deleted", cartId, id, priceId);
     }
