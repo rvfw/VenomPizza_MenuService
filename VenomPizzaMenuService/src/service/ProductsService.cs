@@ -36,6 +36,8 @@ public class ProductsService:IProductsService
         if (cachedProduct != null)
             return cachedProduct;
         var foundedProduct=await _productsRepository.GetProductById(id);
+        if (foundedProduct == null)
+            throw new KeyNotFoundException($"Не найден продукт с Id {id}");
         await _cacheProvider.SetAsync<Product>($"product:{id}", foundedProduct,productExpiration);
         return foundedProduct;
     }
@@ -92,20 +94,17 @@ public class ProductsService:IProductsService
         updatedProduct.Validate();
         var result = await _productsRepository.UpdateProductInfo(updatedProduct);
         await SendInProductUpdatedTopic("product_updated", new ProductShortInfoDto(result));
-        await _cacheProvider.RemoveAsync<Product>(result.Id.ToString());
+        await _cacheProvider.RemoveAsync<Product>($"product:{updatedProduct.Id}");
         return result;
     }
 
     public async Task DeleteProductById(int id)
     {
-        var foundedProduct = await _productsRepository.GetProductIdAndTitle(id,0);
-        if (foundedProduct == null)
-            throw new KeyNotFoundException($"Продукт с Id {id} не найден");
         var result=await _productsRepository.DeleteProductById(id);
         if (!result)
             throw new KeyNotFoundException($"Продукт с Id {id} не найден");
-        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(foundedProduct.Value.id, foundedProduct.Value.title));
-        await _cacheProvider.RemoveAsync<Product>(foundedProduct.Value.id.ToString());
+        await SendInProductUpdatedTopic("product_deleted", new ProductShortInfoDto(id, ""));
+        await _cacheProvider.RemoveAsync<Product>($"product:{id}");
     }
 
     private async Task SendInProductUpdatedTopic(string eventType, ProductShortInfoDto product)
