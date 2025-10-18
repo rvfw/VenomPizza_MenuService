@@ -56,44 +56,4 @@ public class ProductsController : Controller
             return NotFound(ex.Message);
         }
     }
-
-    #region productUpdateTemp
-    [HttpPost]
-    public async Task<IActionResult> AddProduct(ProductDto dto)
-    {
-        try
-        {
-            return Ok(await _productsService.AddProduct(dto));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return BadRequest(ex);
-        }
-    }
-    [HttpPut]
-    public async Task<IActionResult> UpdateProduct(ProductDto dto)
-    {
-        try
-        {
-            return Ok(await _productsService.UpdateProductInfo(dto));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return BadRequest(ex);
-        }
-    }
-    [HttpDelete]
-    public async Task<IActionResult> DeleteProduct([FromQuery] int id)
-    {
-        try
-        {
-            await _productsService.DeleteProductById(id);
-            return Ok();
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return BadRequest(ex);
-        }
-    } 
-    #endregion
 }
