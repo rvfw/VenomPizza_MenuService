@@ -20,6 +20,7 @@ public class Dish : Product
     [Column("allergens")]
     public List<string> Allergens { get; set; } = new List<string>();
 
+    public Dish():base(){}
     public Dish(int id, string title) : base(id, title) { }
     public Dish(DishDto dto):base(dto)
     {

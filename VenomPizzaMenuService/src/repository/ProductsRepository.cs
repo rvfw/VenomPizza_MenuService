@@ -64,7 +64,7 @@ public class ProductsRepository : IProductsRepository
             .ToListAsync();
         return foundedProducts;
     }
-
+    
     public async Task<List<ProductShortInfoDto>?> GetProductsByCategory(string categoryName)
     {
         var result= await _dbContext.Products

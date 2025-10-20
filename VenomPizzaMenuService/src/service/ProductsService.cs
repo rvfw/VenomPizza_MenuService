@@ -38,7 +38,7 @@ public class ProductsService:IProductsService
         var foundedProduct=await _productsRepository.GetProductById(id);
         if (foundedProduct == null)
             throw new KeyNotFoundException($"Не найден продукт с Id {id}");
-        await _cacheProvider.SetAsync<Product>($"product:{id}", foundedProduct,productExpiration);
+        await _cacheProvider.SetAsync($"product:{id}", foundedProduct,productExpiration);
         return foundedProduct;
     }
 
@@ -63,7 +63,7 @@ public class ProductsService:IProductsService
         var foundedProducts=await _productsRepository.GetProductsByCategory(categoryName);
         if (foundedProducts == null || foundedProducts.Count == 0)
             throw new KeyNotFoundException($"Категория {categoryName} не найдена");
-        await _cacheProvider.SetAsync<List<ProductShortInfoDto>>(key, foundedProducts,categoryExpiration);
+        await _cacheProvider.SetAsync(key, foundedProducts,categoryExpiration);
         return foundedProducts;
     }
 

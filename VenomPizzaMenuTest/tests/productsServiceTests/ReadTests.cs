@@ -53,7 +53,7 @@ internal class ReadTests
         Assert.That(foundedProduct.Id, Is.EqualTo(id));
         _mockCacheProvider.Verify(provider => provider.GetAsync<Product>($"product:{id}"), Times.Once);
         _mockProductsRepository.Verify(repository => repository.GetProductById(It.IsAny<int>()), Times.Never);
-        _mockCacheProvider.Verify(provider => provider.SetAsync<Product>(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
+        _mockCacheProvider.Verify(provider => provider.SetAsync(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Test]
@@ -70,7 +70,7 @@ internal class ReadTests
         Assert.That(foundedProduct.Id, Is.EqualTo(id));
         _mockCacheProvider.Verify(provider => provider.GetAsync<Product>($"product:{id}"), Times.Once);
         _mockProductsRepository.Verify(repository => repository.GetProductById(id), Times.Once);
-        _mockCacheProvider.Verify(provider => provider.SetAsync<Product>($"product:{id}", foundedProduct, It.IsAny<TimeSpan>()), Times.Once);
+        _mockCacheProvider.Verify(provider => provider.SetAsync($"product:{id}", foundedProduct, It.IsAny<TimeSpan>()), Times.Once);
     }
 
     [Test]
@@ -86,7 +86,7 @@ internal class ReadTests
 
         _mockCacheProvider.Verify(provider => provider.GetAsync<Product>($"product:{id}"), Times.Once);
         _mockProductsRepository.Verify(repository => repository.GetProductById(id), Times.Once);
-        _mockCacheProvider.Verify(provider => provider.SetAsync<Product>(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
+        _mockCacheProvider.Verify(provider => provider.SetAsync(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Test]
@@ -102,7 +102,7 @@ internal class ReadTests
         Assert.That(foundedPage[0].Id, Is.EqualTo(1));
         _mockCacheProvider.Verify(provider => provider.GetAsync<List<ProductShortInfoDto>>($"products:page:{page}:size:{size}"), Times.Once);
         _mockProductsRepository.Verify(repository => repository.GetProductsPage(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
-        _mockCacheProvider.Verify(provider => provider.SetAsync<Product>(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
+        _mockCacheProvider.Verify(provider => provider.SetAsync(It.IsAny<string>(), It.IsAny<Product>(), It.IsAny<TimeSpan>()), Times.Never);
     }
 
     [Test]

@@ -1,5 +1,8 @@
 ﻿using StackExchange.Redis;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+using VenomPizzaMenuService.src.dto;
+using VenomPizzaMenuService.src.model;
 
 namespace VenomPizzaMenuService.src.cache;
 
@@ -17,11 +20,19 @@ public class CacheProvider : ICacheProvider
     {
         try
         {
-            var foundedValue = await _database.StringGetAsync(key);
-            if (foundedValue.IsNullOrEmpty)
+            var foundedObject = await _database.StringGetAsync(key);
+            if (foundedObject.IsNullOrEmpty)
                 return default;
             _logger.LogInformation($"Получено значение из редиса {key}");
-            return JsonSerializer.Deserialize<T>(foundedValue!);
+            var redisProductDto= JsonSerializer.Deserialize<RedisProductDto>(foundedObject!);
+            Type type = redisProductDto.Type switch
+            {
+                "Dish" => typeof(Dish),
+                "Combo" => typeof(Combo),
+                "Product" => typeof(Product),
+                _ => throw new KeyNotFoundException("Неверный тип продукта"),
+            };
+            return (T)redisProductDto.Value.Deserialize(type);
         }
         catch (Exception ex)
         {
@@ -49,11 +60,12 @@ public class CacheProvider : ICacheProvider
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan expiration)
+    public async Task SetAsync(string key, object value, TimeSpan expiration)
     {
         try
         {
-            var json = JsonSerializer.Serialize(value);
+            var redisProductDto = new RedisProductDto((Product)value);
+            var json = JsonSerializer.Serialize(redisProductDto);
             await _database.StringSetAsync(key, json, expiration);
             _logger.LogInformation($"Установлено значение в редисе для {key}");
         }
